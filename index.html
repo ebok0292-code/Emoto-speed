@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>E-Moto AVAS System V5</title>
+  <title>E-Moto AVAS System V6</title>
   <style>
     :root {
       --bg-color: #0b0c10;
@@ -56,98 +56,81 @@
     .speed-container { display: flex; flex-direction: column; align-items: center; margin-top: -30px; }
     #speed { font-family: 'Courier New', monospace; font-size: clamp(100px, 45vw, 180px); font-weight: 900; line-height: 0.8; color: var(--accent-cyan); text-shadow: 0 0 40px rgba(102, 252, 241, 0.3); }
     #unit { font-size: 18px; font-weight: 600; letter-spacing: 8px; color: var(--accent-teal); margin-top: 15px; }
-    #status-text { position: absolute; bottom: 20px; font-size: 10px; color: var(--text-muted); letter-spacing: 2px; }
 
     .controls-bar { width: 100%; padding: 15px 20px 30px 20px; display: flex; gap: 12px; background: var(--surface-color); z-index: 20; }
     button { flex: 1; padding: 14px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--text-main); font-size: 11px; font-weight: 700; letter-spacing: 1px; border-radius: 12px; text-transform: uppercase; }
     button.active-toggle { background: rgba(102, 252, 241, 0.1); border-color: var(--accent-cyan); color: var(--accent-cyan); }
 
-    #modal { display: none; position: fixed; inset: 0; background: rgba(11, 12, 16, 0.98); backdrop-filter: blur(15px); z-index: 100; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-    .sound-opt { width: 100%; max-width: 280px; padding: 20px; background: var(--surface-color); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; text-align: center; margin-bottom: 10px; color: var(--text-muted); }
-    .sound-opt.active { border-color: var(--accent-cyan); color: var(--accent-cyan); }
-
-    #secret-trigger { position: absolute; top: 0; left: 0; width: 60px; height: 60px; z-index: 30; }
     #debug-panel { position: absolute; top: 100px; right: 15px; background: var(--surface-color); padding: 15px; border-radius: 12px; z-index: 50; width: 180px; display: none; }
+    #secret-trigger { position: absolute; top: 0; left: 0; width: 60px; height: 60px; z-index: 30; }
   </style>
 </head>
 <body>
   <div id="secret-trigger"></div>
   <header>
-    <div class="app-title">AVAS Core V5</div>
-    <div class="status-indicator">
-      <div class="status-dot" id="gps-dot"></div>
-      <span id="gps-text">GPS</span>
-    </div>
+    <div class="app-title">AVAS Core V6</div>
+    <div class="status-indicator"><div class="status-dot" id="gps-dot"></div><span id="gps-text">GPS</span></div>
   </header>
   <div class="telemetry-bar"><span id="acc-val">ACCURACY: --</span><span id="head-val">HEADING: --</span></div>
   <main>
     <div class="speed-container"><div id="speed">0</div><div id="unit">MPH</div></div>
-    <div id="status-text">INITIALIZING ACOUSTICS...</div>
   </main>
   <div class="controls-bar"><button id="audio-btn">Audio Off</button><button id="menu-btn">Profile</button></div>
+
   <div id="debug-panel"><div style="font-size: 10px; margin-bottom: 10px;">SIMULATE</div><input type="checkbox" id="debug-check"><input type="range" id="manual-slider" min="0" max="80" value="0" style="width: 100%;"></div>
-  <div id="modal">
-    <div class="sound-opt active">1. ANGELIC CLOUD</div>
-    <div class="sound-opt" style="opacity: 0.2;">2. LOCKED</div>
-    <button id="close-modal" style="margin-top: 20px; width: 280px;">Back</button>
-  </div>
 
   <script>
     const speedEl = document.getElementById('speed');
-    const statusText = document.getElementById('status-text');
     const gpsDot = document.getElementById('gps-dot');
     const accVal = document.getElementById('acc-val');
-    const headVal = document.getElementById('head-val');
     const audioBtn = document.getElementById('audio-btn');
     const debugCheck = document.getElementById('debug-check');
     const manualSlider = document.getElementById('manual-slider');
 
     let audioCtx, gainMain, gainIdle, filter;
-    let osc1, osc2; // High-speed whine
-    let choir = []; // Angelic layer
-    let lfo; // For breathing effect
+    let osc1, osc2; 
+    let choir = []; 
+    let lfo;
     let audioEnabled = false;
 
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      
-      // MASTER GAIN & FILTER
       filter = audioCtx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.value = 2000;
+      filter.frequency.value = 1500;
       
-      gainMain = audioCtx.createGain();
-      gainIdle = audioCtx.createGain();
+      gainMain = audioCtx.createGain(); // For high speed whine
+      gainIdle = audioCtx.createGain(); // For angelic cloud
       
       gainMain.gain.value = 0;
       gainIdle.gain.value = 0;
 
-      // ── LAYER 1: THE ANGELIC CLOUD (Choir of 3 Sines) ──
-      const rootFreq = 349.23; // F4 - very "peaceful" frequency
-      const ratios = [1.0, 1.2, 1.5]; // Harmonic Major chord
+      // CLOUD LAYER (3 harmonic sines)
+      const rootFreq = 349.23; // F4
+      const ratios = [1.0, 1.25, 1.5]; // Major chord
       
       choir = ratios.map(ratio => {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = 'sine';
         osc.frequency.value = rootFreq * ratio;
-        g.gain.value = 0.1; // Soft individual levels
+        g.gain.value = 0.08; 
         osc.connect(g);
         g.connect(gainIdle);
         osc.start();
         return osc;
       });
 
-      // LFO for "Breathing" movement
+      // LFO for breathing
       lfo = audioCtx.createOscillator();
       const lfoGain = audioCtx.createGain();
-      lfo.frequency.value = 0.5; // 0.5Hz = slow pulse
-      lfoGain.gain.value = 0.02; // Subtle movement
+      lfo.frequency.value = 0.4;
+      lfoGain.gain.value = 0.015;
       lfo.connect(lfoGain);
       lfoGain.connect(gainIdle.gain);
       lfo.start();
 
-      // ── LAYER 2: THE GHOST WHINE (High Speed) ──
+      // WHINE LAYER (Mechanical)
       osc1 = audioCtx.createOscillator();
       osc2 = audioCtx.createOscillator();
       osc1.type = 'sine'; osc2.type = 'sine';
@@ -163,7 +146,6 @@
       if (!audioCtx) initAudio();
       audioEnabled = !audioEnabled;
       audioBtn.textContent = audioEnabled ? "Audio On" : "Audio Off";
-      audioBtn.classList.toggle('active-toggle', audioEnabled);
       if (audioEnabled) {
         audioCtx.resume();
         updateSystem(parseFloat(speedEl.textContent) || 0);
@@ -173,25 +155,37 @@
       }
     });
 
-    function updateSystem(mph, accuracy = null, heading = null) {
+    function updateSystem(mph, accuracy = null) {
       speedEl.textContent = Math.max(0, Math.round(mph));
       if (accuracy) accVal.textContent = `ACCURACY: ${Math.round(accuracy)}m`;
       
       if (audioEnabled && audioCtx) {
-        // High Speed Whine (Layer 2)
-        osc1.frequency.setTargetAtTime(100 + (mph * 5), audioCtx.currentTime, 0.1);
-        osc2.frequency.setTargetAtTime(300 + (mph * 25), audioCtx.currentTime, 0.1);
+        // 1. CLOUD LAYER LOGIC
+        // It stays prominent but pitch shifts up slowly with speed
+        const cloudShift = 1 + (mph / 120); 
+        const rootFreq = 349.23;
+        const ratios = [1.0, 1.25, 1.5];
+        choir.forEach((osc, i) => {
+          osc.frequency.setTargetAtTime(rootFreq * ratios[i] * cloudShift, audioCtx.currentTime, 0.2);
+        });
+        // Cloud volume is steady but dips slightly at very high speeds to let whine lead
+        const cloudVol = mph < 40 ? 0.08 : 0.08 * (1 - (mph - 40) / 100);
+        gainIdle.gain.setTargetAtTime(cloudVol, audioCtx.currentTime, 0.4);
+
+        // 2. WHINE LAYER LOGIC (The "Ease In")
+        osc1.frequency.setTargetAtTime(100 + (mph * 6), audioCtx.currentTime, 0.1);
+        osc2.frequency.setTargetAtTime(300 + (mph * 22), audioCtx.currentTime, 0.1);
         
-        // Main Whine Volume: Starts ramping after 5mph
-        const mainVol = mph > 5 ? Math.min(0.3, (mph - 5) / 50) : 0;
-        gainMain.gain.setTargetAtTime(mainVol, audioCtx.currentTime, 0.2);
+        // Starts at 10mph, gradually reaches full presence by 60mph
+        let whineVol = 0;
+        if (mph > 10) {
+          whineVol = Math.min(0.25, (mph - 10) / 180); 
+        }
+        gainMain.gain.setTargetAtTime(whineVol, audioCtx.currentTime, 0.5);
 
-        // Angelic Idle Volume: Present at 0, gone by 12mph
-        const idleVol = mph < 12 ? 0.05 * (1 - (mph / 12)) : 0;
-        gainIdle.gain.setTargetAtTime(idleVol, audioCtx.currentTime, 0.4);
-
-        // Dynamic Filter: Open up the sound as we go faster
-        filter.frequency.setTargetAtTime(800 + (mph * 100), audioCtx.currentTime, 0.2);
+        // 3. FILTER
+        // Opens up to allow high-pitch mechanical sounds through as we go faster
+        filter.frequency.setTargetAtTime(1200 + (mph * 80), audioCtx.currentTime, 0.3);
       }
     }
 
@@ -199,7 +193,6 @@
       navigator.geolocation.watchPosition((pos) => {
         if (!debugCheck.checked) {
           gpsDot.classList.add('active');
-          statusText.textContent = "SYSTEM LIVE";
           updateSystem(pos.coords.speed > 0 ? pos.coords.speed * 2.237 : 0, pos.coords.accuracy);
         }
       }, null, { enableHighAccuracy: true, maximumAge: 0 });
