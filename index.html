@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>E-Moto AVAS System V3</title>
+  <title>E-Moto AVAS System V4</title>
   <style>
     :root {
       --bg-color: #0b0c10;
@@ -198,7 +198,7 @@
   <div id="secret-trigger"></div>
 
   <header>
-    <div class="app-title">AVAS Core V3</div>
+    <div class="app-title">AVAS Core V4</div>
     <div class="status-indicator">
       <div class="status-dot" id="gps-dot"></div>
       <span id="gps-text">GPS</span>
@@ -215,7 +215,7 @@
       <div id="speed">0</div>
       <div id="unit">MPH</div>
     </div>
-    <div id="status-text">WAITING FOR SATELLITE LOCK...</div>
+    <div id="status-text">WAITING FOR LOCK...</div>
   </main>
 
   <div class="controls-bar">
@@ -224,13 +224,13 @@
   </div>
 
   <div id="debug-panel">
-    <div style="font-size: 10px; margin-bottom: 10px;">SIMULATE GPS</div>
+    <div style="font-size: 10px; margin-bottom: 10px;">SIMULATE</div>
     <input type="checkbox" id="debug-check">
     <input type="range" id="manual-slider" min="0" max="80" value="0" style="width: 100%;">
   </div>
 
   <div id="modal">
-    <div class="sound-opt active">1. TESLA (GHOST WHINE)</div>
+    <div class="sound-opt active">1. TESLA (GHOST)</div>
     <div class="sound-opt" style="opacity: 0.2;">2. LOCKED</div>
     <button id="close-modal" style="margin-top: 20px; width: 280px;">Back</button>
   </div>
@@ -255,18 +255,16 @@
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       
-      // Main layers (Speed based)
       osc1 = audioCtx.createOscillator();
       osc2 = audioCtx.createOscillator();
       gainMain = audioCtx.createGain();
       
-      // Idle layer (Angelic Hum)
       oscIdle = audioCtx.createOscillator();
       gainIdle = audioCtx.createGain();
 
       osc1.type = 'sine'; 
       osc2.type = 'sine';
-      oscIdle.type = 'triangle'; // Triangle is slightly "softer" but present
+      oscIdle.type = 'sine'; // Pure sine for "angelic" quality
 
       gainMain.gain.setValueAtTime(0, audioCtx.currentTime);
       gainIdle.gain.setValueAtTime(0, audioCtx.currentTime);
@@ -282,8 +280,8 @@
       osc2.start();
       oscIdle.start();
       
-      // Fixed frequency for the angelic idle
-      oscIdle.frequency.setValueAtTime(110, audioCtx.currentTime); 
+      // Angelic frequency range
+      oscIdle.frequency.setValueAtTime(600, audioCtx.currentTime); 
     }
 
     audioBtn.addEventListener('click', () => {
@@ -293,7 +291,6 @@
       audioBtn.classList.toggle('active-toggle', audioEnabled);
       if (audioEnabled) {
         audioCtx.resume();
-        // Trigger idle sound immediately if speed is 0
         updateSystem(parseFloat(speedEl.textContent) || 0);
       } else {
         gainMain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
@@ -301,30 +298,24 @@
       }
     });
 
-    function getHeading(deg) {
-      if (deg === null) return "--";
-      const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-      return directions[Math.round(deg / 45) % 8];
-    }
-
     function updateSystem(mph, accuracy = null, heading = null) {
       speedEl.textContent = Math.max(0, Math.round(mph));
       if (accuracy) accVal.textContent = `ACCURACY: ${Math.round(accuracy)}m`;
-      if (heading !== null) headVal.textContent = `HEADING: ${getHeading(heading)}`;
+      if (heading !== null) {
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        headVal.textContent = `HEADING: ${directions[Math.round(heading / 45) % 8]}`;
+      }
 
       if (audioEnabled && audioCtx) {
-        // Speed Pitch
         osc1.frequency.setTargetAtTime(80 + (mph * 3), audioCtx.currentTime, 0.1);
         osc2.frequency.setTargetAtTime(250 + (mph * 20), audioCtx.currentTime, 0.1);
         
-        // Speed Volume (fades in as you move)
-        const mainVol = mph > 0.2 ? Math.min(0.4, 0.1 + (mph / 45)) : 0;
+        const mainVol = mph > 0.3 ? Math.min(0.4, 0.1 + (mph / 45)) : 0;
         gainMain.gain.setTargetAtTime(mainVol, audioCtx.currentTime, 0.1);
 
-        // Idle Volume (Angelic hum fades OUT as you move faster)
-        // Strongest at 0, gone by 10 mph
-        const idleVol = mph < 10 ? 0.15 * (1 - (mph / 10)) : 0;
-        gainIdle.gain.setTargetAtTime(idleVol, audioCtx.currentTime, 0.2);
+        // Subtle Angelic Idle: fades out by 8mph
+        const idleVol = mph < 8 ? 0.04 * (1 - (mph / 8)) : 0;
+        gainIdle.gain.setTargetAtTime(idleVol, audioCtx.currentTime, 0.3);
       }
       
       if (mph < 20) speedEl.style.color = 'var(--accent-cyan)';
@@ -351,13 +342,14 @@
     });
 
     manualSlider.addEventListener('input', () => {
-      if (debugCheck.checked) updateSystem(parseFloat(manualSlider.value), 1, 90);
+      if (debugCheck.checked) updateSystem(parseFloat(manualSlider.value), 1, 0);
     });
 
     startGPS();
   </script>
 </body>
 </html>
+
 
 
 
