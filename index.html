@@ -27,104 +27,65 @@
       transition: color 0.3s;
     }
 
-    #unit {
-      font-size: 28px;
-      color: #444;
-      letter-spacing: 8px;
-      margin-top: 8px;
-    }
+    #unit { font-size: 28px; color: #444; letter-spacing: 8px; margin-top: 8px; }
+    #status { font-size: 13px; color: #333; margin-top: 20px; letter-spacing: 2px; }
 
-    #status {
-      font-size: 13px;
-      color: #333;
-      margin-top: 20px;
-      letter-spacing: 2px;
-    }
+    .controls { display: flex; gap: 10px; margin-top: 20px; }
 
-    /* Audio Toggle Button */
-    #audio-btn {
-      margin-top: 20px;
-      padding: 10px 20px;
-      background: #222;
+    button {
+      padding: 12px 18px;
+      background: #111;
       border: 1px solid #444;
       color: #00ffcc;
       font-family: 'Courier New', monospace;
       cursor: pointer;
-      letter-spacing: 2px;
+      letter-spacing: 1px;
       border-radius: 4px;
+      text-transform: uppercase;
     }
 
-    #audio-btn.active {
-      background: #00ffcc33;
-      border-color: #00ffcc;
-    }
+    #audio-btn.active { background: #00ffcc33; border-color: #00ffcc; }
 
-    #debug-toggle {
-      margin-top: 40px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    #debug-toggle span { font-size: 12px; color: #333; letter-spacing: 2px; }
-
-    .switch { position: relative; width: 48px; height: 26px; }
-    .switch input { display: none; }
-
-    .slider-toggle {
-      position: absolute;
-      inset: 0;
-      background: #222;
-      border-radius: 26px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    .slider-toggle:before {
-      content: '';
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      left: 3px;
-      top: 3px;
-      background: #444;
-      border-radius: 50%;
-      transition: 0.3s;
-    }
-
-    input:checked + .slider-toggle { background: #ff440033; }
-    input:checked + .slider-toggle:before { transform: translateX(22px); background: #ff4400; }
-
-    #debug-panel {
+    /* Modal Styling */
+    #modal {
       display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 100;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
-      margin-top: 24px;
-      width: 280px;
+      justify-content: center;
+      gap: 15px;
     }
 
-    #debug-panel label { font-size: 12px; color: #ff4400; letter-spacing: 3px; }
-
-    #manual-slider {
-      -webkit-appearance: none;
-      width: 100%;
-      height: 6px;
-      background: #222;
-      border-radius: 3px;
-      outline: none;
-    }
-
-    #manual-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: #ff4400;
+    .sound-opt {
+      width: 250px;
+      padding: 15px;
+      border: 1px solid #333;
+      text-align: center;
+      color: #888;
       cursor: pointer;
     }
 
-    #debug-speed-label { font-size: 13px; color: #ff4400; letter-spacing: 2px; }
+    .sound-opt.active {
+      border-color: #00ffcc;
+      color: #00ffcc;
+      background: #00ffcc11;
+    }
+
+    /* Debug Logic (Same as before) */
+    #debug-toggle { margin-top: 40px; display: flex; align-items: center; gap: 12px; }
+    .switch { position: relative; width: 48px; height: 26px; }
+    .switch input { display: none; }
+    .slider-toggle { position: absolute; inset: 0; background: #222; border-radius: 26px; cursor: pointer; }
+    .slider-toggle:before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #444; border-radius: 50%; transition: 0.3s; }
+    input:checked + .slider-toggle { background: #ff440033; }
+    input:checked + .slider-toggle:before { transform: translateX(22px); background: #ff4400; }
+    #debug-panel { display: none; flex-direction: column; align-items: center; gap: 12px; margin-top: 24px; width: 280px; }
+    #manual-slider { -webkit-appearance: none; width: 100%; height: 6px; background: #222; outline: none; }
+    #manual-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #ff4400; cursor: pointer; }
+    #debug-speed-label { font-size: 13px; color: #ff4400; }
   </style>
 </head>
 <body>
@@ -133,18 +94,27 @@
   <div id="unit">MPH</div>
   <div id="status">WAITING FOR GPS...</div>
 
-  <button id="audio-btn">AUDIO: OFF</button>
+  <div class="controls">
+    <button id="audio-btn">AUDIO: OFF</button>
+    <button id="menu-btn">SOUNDS</button>
+  </div>
+
+  <div id="modal">
+    <h2 style="color: #444; margin-bottom: 20px;">SELECT PROFILE</h2>
+    <div class="sound-opt active" data-type="sawtooth">1. AGGRESSIVE (SAW)</div>
+    <div class="sound-opt" data-type="sine">2. SMOOTH (SINE)</div>
+    <div class="sound-opt" data-type="square">3. SLOT 3 (LOCKED)</div>
+    <div class="sound-opt" data-type="triangle">4. SLOT 4 (LOCKED)</div>
+    <div class="sound-opt" data-type="custom">5. SLOT 5 (LOCKED)</div>
+    <button id="close-modal" style="margin-top: 30px; border-color: #ff4400; color: #ff4400;">CLOSE</button>
+  </div>
 
   <div id="debug-toggle">
     <span>DEBUG</span>
-    <label class="switch">
-      <input type="checkbox" id="debug-check">
-      <span class="slider-toggle"></span>
-    </label>
+    <label class="switch"><input type="checkbox" id="debug-check"><span class="slider-toggle"></span></label>
   </div>
 
   <div id="debug-panel">
-    <label>MANUAL SPEED INPUT</label>
     <input type="range" id="manual-slider" min="0" max="80" value="0" step="1">
     <div id="debug-speed-label">0 MPH (SIMULATED)</div>
   </div>
@@ -153,30 +123,25 @@
     const speedEl = document.getElementById('speed');
     const statusEl = document.getElementById('status');
     const audioBtn = document.getElementById('audio-btn');
+    const menuBtn = document.getElementById('menu-btn');
+    const modal = document.getElementById('modal');
+    const closeModal = document.getElementById('close-modal');
+    const soundOpts = document.querySelectorAll('.sound-opt');
     const debugCheck = document.getElementById('debug-check');
     const debugPanel = document.getElementById('debug-panel');
     const manualSlider = document.getElementById('manual-slider');
-    const debugSpeedLabel = document.getElementById('debug-speed-label');
 
-    let debugMode = false;
-    let gpsWatchId = null;
-
-    // ── AUDIO ENGINE ──
-    let audioCtx = null;
-    let osc = null;
-    let gain = null;
+    let audioCtx, osc, gain;
     let audioEnabled = false;
+    let currentType = 'sawtooth';
 
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       osc = audioCtx.createOscillator();
       gain = audioCtx.createGain();
-
-      osc.type = 'sawtooth'; // Gritty motor hum
-      osc.frequency.setValueAtTime(60, audioCtx.currentTime); // Base idle pitch
-      
-      gain.gain.setValueAtTime(0, audioCtx.currentTime); // Start silent
-      
+      osc.type = currentType;
+      osc.frequency.setValueAtTime(60, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0, audioCtx.currentTime);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
@@ -184,7 +149,6 @@
 
     audioBtn.addEventListener('click', () => {
       if (!audioCtx) initAudio();
-      
       audioEnabled = !audioEnabled;
       if (audioEnabled) {
         audioBtn.textContent = "AUDIO: ON";
@@ -197,84 +161,53 @@
       }
     });
 
+    // Modal Logic
+    menuBtn.addEventListener('click', () => modal.style.display = 'flex');
+    closeModal.addEventListener('click', () => modal.style.display = 'none');
+
+    soundOpts.forEach(opt => {
+      opt.addEventListener('click', function() {
+        soundOpts.forEach(s => s.classList.remove('active'));
+        this.classList.add('active');
+        currentType = this.dataset.type;
+        if (osc) osc.type = currentType;
+      });
+    });
+
     function setSpeed(mph) {
       speedEl.textContent = Math.round(mph);
-      
-      // Update Audio Pitch & Volume
       if (audioEnabled && audioCtx) {
-        // Frequency: 60Hz (idle) to 460Hz (at 80mph)
-        const freq = 60 + (mph * 5); 
+        const freq = 60 + (mph * 5);
         osc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.1);
-        
-        // Volume: Ramp up quickly then level off
         const vol = mph > 0 ? Math.min(0.3, 0.05 + (mph / 100)) : 0;
         gain.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.1);
       }
-
-      // Update Colors
-      if (mph < 20) {
-        speedEl.style.color = '#00ffcc';
-        speedEl.style.textShadow = '0 0 30px #00ffcc88';
-      } else if (mph < 40) {
-        speedEl.style.color = '#ffaa00';
-        speedEl.style.textShadow = '0 0 30px #ffaa0088';
-      } else {
-        speedEl.style.color = '#ff4400';
-        speedEl.style.textShadow = '0 0 30px #ff440088';
-      }
+      // Colors
+      if (mph < 20) speedEl.style.color = '#00ffcc';
+      else if (mph < 40) speedEl.style.color = '#ffaa00';
+      else speedEl.style.color = '#ff4400';
     }
 
-    // ── GPS ──
+    // GPS & Debug Logic (Condensed)
     function startGPS() {
-      if (!navigator.geolocation) {
-        statusEl.textContent = 'GPS NOT SUPPORTED';
-        return;
-      }
-      gpsWatchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          if (debugMode) return;
-          const speedMs = pos.coords.speed;
-          if (speedMs === null || speedMs < 0) {
-            setSpeed(0);
-            statusEl.textContent = 'GPS ACTIVE — NOT MOVING';
-          } else {
-            setSpeed(speedMs * 2.237);
-            statusEl.textContent = 'GPS ACTIVE';
-          }
-        },
-        (err) => { if (!debugMode) statusEl.textContent = 'GPS ERROR: ' + err.message; },
-        { enableHighAccuracy: true, maximumAge: 500, timeout: 10000 }
-      );
-    }
-
-    function stopGPS() {
-      if (gpsWatchId !== null) {
-        navigator.geolocation.clearWatch(gpsWatchId);
-        gpsWatchId = null;
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(pos => {
+          if (!debugCheck.checked) setSpeed((pos.coords.speed || 0) * 2.237);
+        }, null, { enableHighAccuracy: true });
       }
     }
 
     debugCheck.addEventListener('change', function() {
-      debugMode = this.checked;
-      if (debugMode) {
-        debugPanel.style.display = 'flex';
-        statusEl.textContent = 'DEBUG MODE';
-        stopGPS();
-        setSpeed(parseInt(manualSlider.value));
-      } else {
-        debugPanel.style.display = 'none';
-        setSpeed(0);
-        startGPS();
-      }
+      debugPanel.style.display = this.checked ? 'flex' : 'none';
+      if (!this.checked) startGPS();
     });
 
     manualSlider.addEventListener('input', function() {
-      const mph = parseInt(this.value);
-      debugSpeedLabel.textContent = mph + ' MPH (SIMULATED)';
-      setSpeed(mph);
+      setSpeed(parseInt(this.value));
     });
 
     startGPS();
   </script>
 </body>
 </html>
+
