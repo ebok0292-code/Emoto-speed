@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>E-Moto AVAS System V8</title>
+  <title>E-Moto AVAS System V9</title>
   <style>
     :root {
       --bg-color: #0b0c10;
@@ -13,9 +13,7 @@
       --text-main: #c5c6c7;
       --text-muted: #7a7a7a;
     }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
@@ -26,7 +24,6 @@
       overflow: hidden;
       user-select: none;
     }
-
     header {
       width: 100%;
       padding: 12px 20px;
@@ -36,29 +33,23 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       z-index: 20;
     }
-
     .app-title { font-size: 11px; font-weight: 600; letter-spacing: 3px; color: var(--text-muted); text-transform: uppercase; }
-
     .telemetry-bar {
       width: 100%; background: rgba(255, 255, 255, 0.02);
       padding: 6px 20px; display: flex; justify-content: space-between;
       border-bottom: 1px solid rgba(255, 255, 255, 0.03);
       font-size: 9px; font-family: monospace; letter-spacing: 1px; color: var(--accent-teal);
     }
-
     .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-muted); }
     .status-dot { width: 6px; height: 6px; background-color: #ff4400; border-radius: 50%; transition: all 0.3s; }
     .status-dot.active { background-color: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan); }
-
     main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
     .speed-container { display: flex; flex-direction: column; align-items: center; margin-top: -30px; }
     #speed { font-family: 'Courier New', monospace; font-size: clamp(100px, 45vw, 180px); font-weight: 900; line-height: 0.8; color: var(--accent-cyan); text-shadow: 0 0 40px rgba(102, 252, 241, 0.3); }
     #unit { font-size: 18px; font-weight: 600; letter-spacing: 8px; color: var(--accent-teal); margin-top: 15px; }
-
     .controls-bar { width: 100%; padding: 15px 20px 30px 20px; display: flex; gap: 12px; background: var(--surface-color); z-index: 20; }
     button { flex: 1; padding: 14px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--text-main); font-size: 11px; font-weight: 700; letter-spacing: 1px; border-radius: 12px; text-transform: uppercase; }
     button.active-toggle { background: rgba(102, 252, 241, 0.1); border-color: var(--accent-cyan); color: var(--accent-cyan); }
-
     #debug-panel { position: absolute; top: 100px; right: 15px; background: var(--surface-color); padding: 15px; border-radius: 12px; z-index: 50; width: 180px; display: none; }
     #secret-trigger { position: absolute; top: 0; left: 0; width: 60px; height: 60px; z-index: 30; }
   </style>
@@ -66,7 +57,7 @@
 <body>
   <div id="secret-trigger"></div>
   <header>
-    <div class="app-title">AVAS Core V8</div>
+    <div class="app-title">AVAS Core V9</div>
     <div class="status-indicator"><div class="status-dot" id="gps-dot"></div><span id="gps-text">GPS</span></div>
   </header>
   <div class="telemetry-bar"><span id="acc-val">ACCURACY: --</span><span id="head-val">HEADING: --</span></div>
@@ -74,7 +65,6 @@
     <div class="speed-container"><div id="speed">0</div><div id="unit">MPH</div></div>
   </main>
   <div class="controls-bar"><button id="audio-btn">Audio Off</button><button id="menu-btn">Profile</button></div>
-
   <div id="debug-panel"><div style="font-size: 10px; margin-bottom: 10px;">SIMULATE</div><input type="checkbox" id="debug-check"><input type="range" id="manual-slider" min="0" max="80" value="0" style="width: 100%;"></div>
 
   <script>
@@ -92,38 +82,32 @@
 
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      
       filter = audioCtx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.value = 1800;
+      filter.frequency.value = 2200;
       
       gainIdle = audioCtx.createGain(); 
       gainIdle.gain.value = 0;
 
-      // VIBRATO ENGINE (The Wawawawa)
+      // VIBRATO LFO (The "Wawa" Engine)
       vibratoLFO = audioCtx.createOscillator();
       vibratoGain = audioCtx.createGain();
-      vibratoLFO.frequency.value = 2.5; // Initial "Wawa" speed (Hz)
-      vibratoGain.gain.value = 5; // How deep the "Wawa" is (depth in Hz)
+      vibratoLFO.frequency.value = 2.5; 
+      vibratoGain.gain.value = 6; 
       vibratoLFO.connect(vibratoGain);
       vibratoLFO.start();
 
       // THE SHIMMER CHOIR
-      const rootFreq = 220.00; // Dropped to A3 for a richer BMW-style foundation
-      const ratios = [1.0, 1.49, 1.88]; // Harmonic intervals for complex "shimmer"
+      const rootFreq = 220.00; 
+      const ratios = [1.0, 1.49, 1.88, 2.1]; // Added a 4th layer for more density at high speed
       
       choir = ratios.map((ratio, index) => {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = 'sine';
-        // Add slight detuning between oscillators for natural phasing
-        osc.frequency.value = (rootFreq * ratio) + (index * 0.5);
-        
-        g.gain.value = 0.12; 
-        
-        // Connect Vibrato LFO to the frequency of each oscillator
+        osc.frequency.value = (rootFreq * ratio) + (index * 0.7);
+        g.gain.value = 0.1; 
         vibratoGain.connect(osc.frequency);
-        
         osc.connect(g);
         g.connect(gainIdle);
         osc.start();
@@ -153,27 +137,29 @@
       
       if (audioEnabled && audioCtx) {
         // 1. PITCH CLIMB
-        const cloudShift = 1 + (mph / 100); 
+        const cloudShift = 1 + (mph / 90); 
         const rootFreq = 220.00;
-        const ratios = [1.0, 1.49, 1.88];
-        
+        const ratios = [1.0, 1.49, 1.88, 2.1];
         choir.forEach((osc, i) => {
           osc.frequency.setTargetAtTime((rootFreq * ratios[i] * cloudShift), audioCtx.currentTime, 0.4);
         });
 
-        // 2. VIBRATO SPEED (The "Wawa" accelerates)
-        // Faster movement as you speed up
-        const lfoSpeed = 2.5 + (mph / 15);
-        vibratoLFO.frequency.setTargetAtTime(lfoSpeed, audioCtx.currentTime, 0.3);
+        // 2. WAWA VELOCITY (Exponential Ramp)
+        // At 0mph: 2.5Hz (Slow Wawa)
+        // At 40mph: ~35Hz (Fast Vibrato)
+        // At 60mph+: 60Hz+ (FM Growl)
+        const lfoSpeed = 2.5 + (Math.pow(mph, 1.8) / 30);
+        vibratoLFO.frequency.setTargetAtTime(lfoSpeed, audioCtx.currentTime, 0.2);
         
-        // 3. VIBRATO DEPTH (The "Wawa" gets more intense with speed)
-        const lfoDepth = 5 + (mph / 5);
-        vibratoGain.gain.setTargetAtTime(lfoDepth, audioCtx.currentTime, 0.3);
+        // 3. WAWA DEPTH
+        // Makes the sound "thicker" as it speeds up
+        const lfoDepth = 6 + (mph / 3);
+        vibratoGain.gain.setTargetAtTime(lfoDepth, audioCtx.currentTime, 0.2);
 
         // 4. VOLUME & FILTER
-        const targetVol = 0.12 + (mph / 500); 
+        const targetVol = 0.12 + (mph / 400); 
         gainIdle.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.5);
-        filter.frequency.setTargetAtTime(1800 + (mph * 30), audioCtx.currentTime, 0.5);
+        filter.frequency.setTargetAtTime(2200 + (mph * 40), audioCtx.currentTime, 0.5);
       }
     }
 
@@ -199,6 +185,7 @@
   </script>
 </body>
 </html>
+
 
 
 
