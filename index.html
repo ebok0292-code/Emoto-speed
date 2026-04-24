@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>E-Moto AVAS System V7</title>
+  <title>E-Moto AVAS System V8</title>
   <style>
     :root {
       --bg-color: #0b0c10;
@@ -66,7 +66,7 @@
 <body>
   <div id="secret-trigger"></div>
   <header>
-    <div class="app-title">AVAS Core V7</div>
+    <div class="app-title">AVAS Core V8</div>
     <div class="status-indicator"><div class="status-dot" id="gps-dot"></div><span id="gps-text">GPS</span></div>
   </header>
   <div class="telemetry-bar"><span id="acc-val">ACCURACY: --</span><span id="head-val">HEADING: --</span></div>
@@ -87,44 +87,48 @@
 
     let audioCtx, gainIdle, filter;
     let choir = []; 
-    let lfo;
+    let vibratoLFO, vibratoGain;
     let audioEnabled = false;
 
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       
-      // Clean filter to keep it "cloudy"
       filter = audioCtx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.value = 2000;
+      filter.frequency.value = 1800;
       
       gainIdle = audioCtx.createGain(); 
       gainIdle.gain.value = 0;
 
-      // THE ANGELIC CLOUD (Harmonic sine stack)
-      const rootFreq = 349.23; // F4
-      const ratios = [1.0, 1.25, 1.5]; // Major Chord
+      // VIBRATO ENGINE (The Wawawawa)
+      vibratoLFO = audioCtx.createOscillator();
+      vibratoGain = audioCtx.createGain();
+      vibratoLFO.frequency.value = 2.5; // Initial "Wawa" speed (Hz)
+      vibratoGain.gain.value = 5; // How deep the "Wawa" is (depth in Hz)
+      vibratoLFO.connect(vibratoGain);
+      vibratoLFO.start();
+
+      // THE SHIMMER CHOIR
+      const rootFreq = 220.00; // Dropped to A3 for a richer BMW-style foundation
+      const ratios = [1.0, 1.49, 1.88]; // Harmonic intervals for complex "shimmer"
       
-      choir = ratios.map(ratio => {
+      choir = ratios.map((ratio, index) => {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.value = rootFreq * ratio;
-        g.gain.value = 0.1; 
+        // Add slight detuning between oscillators for natural phasing
+        osc.frequency.value = (rootFreq * ratio) + (index * 0.5);
+        
+        g.gain.value = 0.12; 
+        
+        // Connect Vibrato LFO to the frequency of each oscillator
+        vibratoGain.connect(osc.frequency);
+        
         osc.connect(g);
         g.connect(gainIdle);
         osc.start();
         return osc;
       });
-
-      // Subtle breathing pulse
-      lfo = audioCtx.createOscillator();
-      const lfoGain = audioCtx.createGain();
-      lfo.frequency.value = 0.5;
-      lfoGain.gain.value = 0.02;
-      lfo.connect(lfoGain);
-      lfoGain.connect(gainIdle.gain);
-      lfo.start();
 
       gainIdle.connect(filter);
       filter.connect(audioCtx.destination);
@@ -148,23 +152,28 @@
       if (accuracy) accVal.textContent = `ACCURACY: ${Math.round(accuracy)}m`;
       
       if (audioEnabled && audioCtx) {
-        // PITCH MODULATION: The cloud rises as you speed up
-        // 1.0 multiplier at 0mph, up to ~2.0 at 80mph
-        const cloudShift = 1 + (mph / 80); 
-        const rootFreq = 349.23;
-        const ratios = [1.0, 1.25, 1.5];
+        // 1. PITCH CLIMB
+        const cloudShift = 1 + (mph / 100); 
+        const rootFreq = 220.00;
+        const ratios = [1.0, 1.49, 1.88];
         
         choir.forEach((osc, i) => {
-          osc.frequency.setTargetAtTime(rootFreq * ratios[i] * cloudShift, audioCtx.currentTime, 0.3);
+          osc.frequency.setTargetAtTime((rootFreq * ratios[i] * cloudShift), audioCtx.currentTime, 0.4);
         });
 
-        // VOLUME & INTENSITY
-        // Slightly louder as you go faster to cut through wind, but stays smooth
-        const targetVol = 0.1 + (mph / 400); 
-        gainIdle.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.5);
+        // 2. VIBRATO SPEED (The "Wawa" accelerates)
+        // Faster movement as you speed up
+        const lfoSpeed = 2.5 + (mph / 15);
+        vibratoLFO.frequency.setTargetAtTime(lfoSpeed, audioCtx.currentTime, 0.3);
+        
+        // 3. VIBRATO DEPTH (The "Wawa" gets more intense with speed)
+        const lfoDepth = 5 + (mph / 5);
+        vibratoGain.gain.setTargetAtTime(lfoDepth, audioCtx.currentTime, 0.3);
 
-        // FILTER: Opens slightly as you speed up to add "shimmer"
-        filter.frequency.setTargetAtTime(1500 + (mph * 20), audioCtx.currentTime, 0.5);
+        // 4. VOLUME & FILTER
+        const targetVol = 0.12 + (mph / 500); 
+        gainIdle.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.5);
+        filter.frequency.setTargetAtTime(1800 + (mph * 30), audioCtx.currentTime, 0.5);
       }
     }
 
@@ -190,9 +199,6 @@
   </script>
 </body>
 </html>
-
-
-
 
 
 
