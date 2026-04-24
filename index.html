@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>E-Moto AVAS System V9</title>
+  <title>E-Moto AVAS System V10</title>
   <style>
     :root {
       --bg-color: #0b0c10;
@@ -57,7 +57,7 @@
 <body>
   <div id="secret-trigger"></div>
   <header>
-    <div class="app-title">AVAS Core V9</div>
+    <div class="app-title">AVAS Core V10</div>
     <div class="status-indicator"><div class="status-dot" id="gps-dot"></div><span id="gps-text">GPS</span></div>
   </header>
   <div class="telemetry-bar"><span id="acc-val">ACCURACY: --</span><span id="head-val">HEADING: --</span></div>
@@ -84,29 +84,29 @@
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       filter = audioCtx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.value = 2200;
+      filter.frequency.value = 2000;
       
       gainIdle = audioCtx.createGain(); 
       gainIdle.gain.value = 0;
 
-      // VIBRATO LFO (The "Wawa" Engine)
+      // THE "WAWA" ENGINE (Vibrato)
       vibratoLFO = audioCtx.createOscillator();
       vibratoGain = audioCtx.createGain();
-      vibratoLFO.frequency.value = 2.5; 
-      vibratoGain.gain.value = 6; 
+      vibratoLFO.frequency.value = 2.0; 
+      vibratoGain.gain.value = 4; 
       vibratoLFO.connect(vibratoGain);
       vibratoLFO.start();
 
-      // THE SHIMMER CHOIR
+      // THE BMW-STYLE CLOUD
       const rootFreq = 220.00; 
-      const ratios = [1.0, 1.49, 1.88, 2.1]; // Added a 4th layer for more density at high speed
+      const ratios = [1.0, 1.49, 1.88, 2.1]; 
       
       choir = ratios.map((ratio, index) => {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.value = (rootFreq * ratio) + (index * 0.7);
-        g.gain.value = 0.1; 
+        osc.frequency.value = (rootFreq * ratio) + (index * 0.5);
+        g.gain.value = 0.12; 
         vibratoGain.connect(osc.frequency);
         osc.connect(g);
         g.connect(gainIdle);
@@ -137,29 +137,29 @@
       
       if (audioEnabled && audioCtx) {
         // 1. PITCH CLIMB
-        const cloudShift = 1 + (mph / 90); 
+        const cloudShift = 1 + (mph / 110); 
         const rootFreq = 220.00;
         const ratios = [1.0, 1.49, 1.88, 2.1];
         choir.forEach((osc, i) => {
           osc.frequency.setTargetAtTime((rootFreq * ratios[i] * cloudShift), audioCtx.currentTime, 0.4);
         });
 
-        // 2. WAWA VELOCITY (Exponential Ramp)
-        // At 0mph: 2.5Hz (Slow Wawa)
-        // At 40mph: ~35Hz (Fast Vibrato)
-        // At 60mph+: 60Hz+ (FM Growl)
-        const lfoSpeed = 2.5 + (Math.pow(mph, 1.8) / 30);
-        vibratoLFO.frequency.setTargetAtTime(lfoSpeed, audioCtx.currentTime, 0.2);
+        // 2. WAWA SPEED (Smoother ramp to keep oscillation audible)
+        // Capped so it doesn't just turn into high-frequency buzz too fast
+        const lfoSpeed = 2.0 + (mph / 8); 
+        vibratoLFO.frequency.setTargetAtTime(lfoSpeed, audioCtx.currentTime, 0.3);
         
-        // 3. WAWA DEPTH
-        // Makes the sound "thicker" as it speeds up
-        const lfoDepth = 6 + (mph / 3);
-        vibratoGain.gain.setTargetAtTime(lfoDepth, audioCtx.currentTime, 0.2);
+        // 3. WAWA DEPTH (Increases shimmer as you speed up)
+        const lfoDepth = 4 + (mph / 4);
+        vibratoGain.gain.setTargetAtTime(lfoDepth, audioCtx.currentTime, 0.3);
 
-        // 4. VOLUME & FILTER
-        const targetVol = 0.12 + (mph / 400); 
-        gainIdle.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.5);
-        filter.frequency.setTargetAtTime(2200 + (mph * 40), audioCtx.currentTime, 0.5);
+        // 4. VOLUME FLOOR (10% at 0MPH, ramps up with speed)
+        // Base idle is 0.04 (approx 10% of max intended output)
+        const targetVol = 0.04 + (mph / 350); 
+        gainIdle.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.6);
+        
+        // Dynamic filter to keep it "puffy" at 0 and "bright" at 80
+        filter.frequency.setTargetAtTime(1500 + (mph * 30), audioCtx.currentTime, 0.5);
       }
     }
 
@@ -185,6 +185,7 @@
   </script>
 </body>
 </html>
+
 
 
 
