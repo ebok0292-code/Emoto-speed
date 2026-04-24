@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Speed</title>
+  <title>Speed AVAS</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -37,30 +37,38 @@
     #status {
       font-size: 13px;
       color: #333;
-      margin-top: 40px;
+      margin-top: 20px;
       letter-spacing: 2px;
     }
 
+    /* Audio Toggle Button */
+    #audio-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #222;
+      border: 1px solid #444;
+      color: #00ffcc;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      letter-spacing: 2px;
+      border-radius: 4px;
+    }
+
+    #audio-btn.active {
+      background: #00ffcc33;
+      border-color: #00ffcc;
+    }
+
     #debug-toggle {
-      margin-top: 50px;
+      margin-top: 40px;
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
-    #debug-toggle span {
-      font-size: 12px;
-      color: #333;
-      letter-spacing: 2px;
-    }
+    #debug-toggle span { font-size: 12px; color: #333; letter-spacing: 2px; }
 
-    /* Toggle switch */
-    .switch {
-      position: relative;
-      width: 48px;
-      height: 26px;
-    }
-
+    .switch { position: relative; width: 48px; height: 26px; }
     .switch input { display: none; }
 
     .slider-toggle {
@@ -84,14 +92,8 @@
       transition: 0.3s;
     }
 
-    input:checked + .slider-toggle {
-      background: #ff440033;
-    }
-
-    input:checked + .slider-toggle:before {
-      transform: translateX(22px);
-      background: #ff4400;
-    }
+    input:checked + .slider-toggle { background: #ff440033; }
+    input:checked + .slider-toggle:before { transform: translateX(22px); background: #ff4400; }
 
     #debug-panel {
       display: none;
@@ -102,11 +104,7 @@
       width: 280px;
     }
 
-    #debug-panel label {
-      font-size: 12px;
-      color: #ff4400;
-      letter-spacing: 3px;
-    }
+    #debug-panel label { font-size: 12px; color: #ff4400; letter-spacing: 3px; }
 
     #manual-slider {
       -webkit-appearance: none;
@@ -126,11 +124,7 @@
       cursor: pointer;
     }
 
-    #debug-speed-label {
-      font-size: 13px;
-      color: #ff4400;
-      letter-spacing: 2px;
-    }
+    #debug-speed-label { font-size: 13px; color: #ff4400; letter-spacing: 2px; }
   </style>
 </head>
 <body>
@@ -139,7 +133,8 @@
   <div id="unit">MPH</div>
   <div id="status">WAITING FOR GPS...</div>
 
-  <!-- Debug toggle -->
+  <button id="audio-btn">AUDIO: OFF</button>
+
   <div id="debug-toggle">
     <span>DEBUG</span>
     <label class="switch">
@@ -148,7 +143,6 @@
     </label>
   </div>
 
-  <!-- Debug panel (hidden by default) -->
   <div id="debug-panel">
     <label>MANUAL SPEED INPUT</label>
     <input type="range" id="manual-slider" min="0" max="80" value="0" step="1">
@@ -158,6 +152,7 @@
   <script>
     const speedEl = document.getElementById('speed');
     const statusEl = document.getElementById('status');
+    const audioBtn = document.getElementById('audio-btn');
     const debugCheck = document.getElementById('debug-check');
     const debugPanel = document.getElementById('debug-panel');
     const manualSlider = document.getElementById('manual-slider');
@@ -166,12 +161,58 @@
     let debugMode = false;
     let gpsWatchId = null;
 
+    // ── AUDIO ENGINE ──
+    let audioCtx = null;
+    let osc = null;
+    let gain = null;
+    let audioEnabled = false;
+
+    function initAudio() {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      osc = audioCtx.createOscillator();
+      gain = audioCtx.createGain();
+
+      osc.type = 'sawtooth'; // Gritty motor hum
+      osc.frequency.setValueAtTime(60, audioCtx.currentTime); // Base idle pitch
+      
+      gain.gain.setValueAtTime(0, audioCtx.currentTime); // Start silent
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+    }
+
+    audioBtn.addEventListener('click', () => {
+      if (!audioCtx) initAudio();
+      
+      audioEnabled = !audioEnabled;
+      if (audioEnabled) {
+        audioBtn.textContent = "AUDIO: ON";
+        audioBtn.classList.add('active');
+        audioCtx.resume();
+      } else {
+        audioBtn.textContent = "AUDIO: OFF";
+        audioBtn.classList.remove('active');
+        gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+      }
+    });
+
     function setSpeed(mph) {
       speedEl.textContent = Math.round(mph);
-      if (mph < 1) {
-        speedEl.style.color = '#00ffcc';
-        speedEl.style.textShadow = '0 0 30px #00ffcc88';
-      } else if (mph < 20) {
+      
+      // Update Audio Pitch & Volume
+      if (audioEnabled && audioCtx) {
+        // Frequency: 60Hz (idle) to 460Hz (at 80mph)
+        const freq = 60 + (mph * 5); 
+        osc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.1);
+        
+        // Volume: Ramp up quickly then level off
+        const vol = mph > 0 ? Math.min(0.3, 0.05 + (mph / 100)) : 0;
+        gain.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.1);
+      }
+
+      // Update Colors
+      if (mph < 20) {
         speedEl.style.color = '#00ffcc';
         speedEl.style.textShadow = '0 0 30px #00ffcc88';
       } else if (mph < 40) {
@@ -189,9 +230,8 @@
         statusEl.textContent = 'GPS NOT SUPPORTED';
         return;
       }
-      statusEl.textContent = 'WAITING FOR GPS...';
       gpsWatchId = navigator.geolocation.watchPosition(
-        function(pos) {
+        (pos) => {
           if (debugMode) return;
           const speedMs = pos.coords.speed;
           if (speedMs === null || speedMs < 0) {
@@ -202,9 +242,7 @@
             statusEl.textContent = 'GPS ACTIVE';
           }
         },
-        function(err) {
-          if (!debugMode) statusEl.textContent = 'GPS ERROR: ' + err.message;
-        },
+        (err) => { if (!debugMode) statusEl.textContent = 'GPS ERROR: ' + err.message; },
         { enableHighAccuracy: true, maximumAge: 500, timeout: 10000 }
       );
     }
@@ -216,7 +254,6 @@
       }
     }
 
-    // ── Debug toggle ──
     debugCheck.addEventListener('change', function() {
       debugMode = this.checked;
       if (debugMode) {
@@ -231,14 +268,12 @@
       }
     });
 
-    // ── Slider ──
     manualSlider.addEventListener('input', function() {
       const mph = parseInt(this.value);
       debugSpeedLabel.textContent = mph + ' MPH (SIMULATED)';
       setSpeed(mph);
     });
 
-    // Start GPS on load
     startGPS();
   </script>
 </body>
