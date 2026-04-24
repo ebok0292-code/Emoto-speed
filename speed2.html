@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Speed</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+    }
+
+    #speed {
+      font-size: 120px;
+      font-weight: bold;
+      color: #00ffcc;
+      line-height: 1;
+      text-shadow: 0 0 30px #00ffcc88;
+      transition: color 0.3s;
+    }
+
+    #unit {
+      font-size: 28px;
+      color: #444;
+      letter-spacing: 8px;
+      margin-top: 8px;
+    }
+
+    #status {
+      font-size: 13px;
+      color: #333;
+      margin-top: 40px;
+      letter-spacing: 2px;
+    }
+
+    #debug-toggle {
+      margin-top: 50px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #debug-toggle span {
+      font-size: 12px;
+      color: #333;
+      letter-spacing: 2px;
+    }
+
+    /* Toggle switch */
+    .switch {
+      position: relative;
+      width: 48px;
+      height: 26px;
+    }
+
+    .switch input { display: none; }
+
+    .slider-toggle {
+      position: absolute;
+      inset: 0;
+      background: #222;
+      border-radius: 26px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .slider-toggle:before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 3px;
+      top: 3px;
+      background: #444;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+
+    input:checked + .slider-toggle {
+      background: #ff440033;
+    }
+
+    input:checked + .slider-toggle:before {
+      transform: translateX(22px);
+      background: #ff4400;
+    }
+
+    #debug-panel {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-top: 24px;
+      width: 280px;
+    }
+
+    #debug-panel label {
+      font-size: 12px;
+      color: #ff4400;
+      letter-spacing: 3px;
+    }
+
+    #manual-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      background: #222;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    #manual-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #ff4400;
+      cursor: pointer;
+    }
+
+    #debug-speed-label {
+      font-size: 13px;
+      color: #ff4400;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="speed">--</div>
+  <div id="unit">MPH</div>
+  <div id="status">WAITING FOR GPS...</div>
+
+  <!-- Debug toggle -->
+  <div id="debug-toggle">
+    <span>DEBUG</span>
+    <label class="switch">
+      <input type="checkbox" id="debug-check">
+      <span class="slider-toggle"></span>
+    </label>
+  </div>
+
+  <!-- Debug panel (hidden by default) -->
+  <div id="debug-panel">
+    <label>MANUAL SPEED INPUT</label>
+    <input type="range" id="manual-slider" min="0" max="80" value="0" step="1">
+    <div id="debug-speed-label">0 MPH (SIMULATED)</div>
+  </div>
+
+  <script>
+    const speedEl = document.getElementById('speed');
+    const statusEl = document.getElementById('status');
+    const debugCheck = document.getElementById('debug-check');
+    const debugPanel = document.getElementById('debug-panel');
+    const manualSlider = document.getElementById('manual-slider');
+    const debugSpeedLabel = document.getElementById('debug-speed-label');
+
+    let debugMode = false;
+    let gpsWatchId = null;
+
+    function setSpeed(mph) {
+      speedEl.textContent = Math.round(mph);
+      if (mph < 1) {
+        speedEl.style.color = '#00ffcc';
+        speedEl.style.textShadow = '0 0 30px #00ffcc88';
+      } else if (mph < 20) {
+        speedEl.style.color = '#00ffcc';
+        speedEl.style.textShadow = '0 0 30px #00ffcc88';
+      } else if (mph < 40) {
+        speedEl.style.color = '#ffaa00';
+        speedEl.style.textShadow = '0 0 30px #ffaa0088';
+      } else {
+        speedEl.style.color = '#ff4400';
+        speedEl.style.textShadow = '0 0 30px #ff440088';
+      }
+    }
+
+    // ── GPS ──
+    function startGPS() {
+      if (!navigator.geolocation) {
+        statusEl.textContent = 'GPS NOT SUPPORTED';
+        return;
+      }
+      statusEl.textContent = 'WAITING FOR GPS...';
+      gpsWatchId = navigator.geolocation.watchPosition(
+        function(pos) {
+          if (debugMode) return;
+          const speedMs = pos.coords.speed;
+          if (speedMs === null || speedMs < 0) {
+            setSpeed(0);
+            statusEl.textContent = 'GPS ACTIVE — NOT MOVING';
+          } else {
+            setSpeed(speedMs * 2.237);
+            statusEl.textContent = 'GPS ACTIVE';
+          }
+        },
+        function(err) {
+          if (!debugMode) statusEl.textContent = 'GPS ERROR: ' + err.message;
+        },
+        { enableHighAccuracy: true, maximumAge: 500, timeout: 10000 }
+      );
+    }
+
+    function stopGPS() {
+      if (gpsWatchId !== null) {
+        navigator.geolocation.clearWatch(gpsWatchId);
+        gpsWatchId = null;
+      }
+    }
+
+    // ── Debug toggle ──
+    debugCheck.addEventListener('change', function() {
+      debugMode = this.checked;
+      if (debugMode) {
+        debugPanel.style.display = 'flex';
+        statusEl.textContent = 'DEBUG MODE';
+        stopGPS();
+        setSpeed(parseInt(manualSlider.value));
+      } else {
+        debugPanel.style.display = 'none';
+        setSpeed(0);
+        startGPS();
+      }
+    });
+
+    // ── Slider ──
+    manualSlider.addEventListener('input', function() {
+      const mph = parseInt(this.value);
+      debugSpeedLabel.textContent = mph + ' MPH (SIMULATED)';
+      setSpeed(mph);
+    });
+
+    // Start GPS on load
+    startGPS();
+  </script>
+</body>
+</html>
