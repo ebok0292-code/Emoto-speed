@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>E-Moto AVAS System</title>
+  <title>E-Moto AVAS System V1</title>
   <style>
-    /* ── BASE & TYPOGRAPHY ── */
     :root {
       --bg-color: #0b0c10;
       --surface-color: #1f2833;
@@ -25,14 +24,11 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       display: flex;
       flex-direction: column;
-      /* Using dvh (dynamic viewport height) to prevent mobile browser cutoff */
-      height: 100vh;
       height: 100dvh; 
       overflow: hidden;
       user-select: none;
     }
 
-    /* ── HEADER ── */
     header {
       width: 100%;
       padding: 15px 20px;
@@ -78,7 +74,6 @@
       box-shadow: 0 0 10px var(--accent-cyan);
     }
 
-    /* ── MAIN DASHBOARD ── */
     main {
       flex: 1;
       display: flex;
@@ -93,12 +88,12 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      margin-top: -20px; /* Slight offset for visual balance */
+      margin-top: -20px;
     }
 
     #speed {
       font-family: 'Courier New', monospace;
-      font-size: clamp(100px, 40vw, 160px); /* Responsive sizing */
+      font-size: clamp(100px, 40vw, 160px);
       font-weight: 900;
       line-height: 0.8;
       color: var(--accent-cyan);
@@ -123,10 +118,9 @@
       text-transform: uppercase;
     }
 
-    /* ── BOTTOM CONTROLS ── */
     .controls-bar {
       width: 100%;
-      padding: 15px 20px 25px 20px; /* Extra bottom padding for mobile home bars */
+      padding: 15px 20px 25px 20px; 
       display: flex;
       gap: 12px;
       background: var(--surface-color);
@@ -159,7 +153,6 @@
 
     .btn-icon { font-size: 16px; }
 
-    /* ── MODAL ── */
     #modal {
       display: none;
       position: fixed;
@@ -207,7 +200,6 @@
 
     .sound-opt.locked { opacity: 0.3; }
 
-    /* ── DEBUG PANEL ── */
     #debug-panel {
       position: absolute;
       top: 65px;
@@ -253,7 +245,7 @@
   <div id="secret-trigger"></div>
 
   <header>
-    <div class="app-title">AVAS Core</div>
+    <div class="app-title">AVAS Core V1</div>
     <div class="status-indicator">
       <div class="status-dot" id="gps-dot"></div>
       <span id="gps-text">GPS: WAIT</span>
@@ -367,7 +359,6 @@
     function updateSystem(mph) {
       speedEl.textContent = Math.max(0, Math.round(mph));
       if (audioEnabled && audioCtx) {
-        // High-pitched ramp: 40mph is the "climax" of the pitch
         const baseFreq = 80 + (mph * 3);
         const whineFreq = 250 + (mph * 20); 
         osc1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.1);
@@ -421,7 +412,6 @@
   </script>
 </body>
 </html>
-
 
 
 
