@@ -7,12 +7,11 @@
   <style>
     :root {
       --bg-color: #0b0c10;
-      --surface-color: #151b22;
+      --surface-color: #1f2833;
       --accent-cyan: #66fcf1;
       --accent-teal: #45a29e;
       --text-main: #c5c6c7;
-      --text-muted: #4a5462;
-      --danger: #ff4400;
+      --text-muted: #4a525a;
     }
     
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -20,96 +19,99 @@
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       display: flex; flex-direction: column; height: 100dvh; overflow: hidden; user-select: none;
-      touch-action: none; transition: background-color 0.5s ease;
+      touch-action: none;
+      animation: fadeIn 0.8s ease-out;
     }
 
-    /* --- HEADER & TELEMETRY --- */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
     header {
-      width: 100%; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05); z-index: 20; background: var(--bg-color);
+      width: 100%; padding: 16px 24px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: linear-gradient(180deg, rgba(31,40,51,0.8) 0%, rgba(11,12,16,0) 100%);
+      z-index: 20;
     }
-    .app-title { font-size: 11px; font-weight: 800; letter-spacing: 4px; color: var(--text-muted); text-transform: uppercase; }
-    .status-indicator { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 1px;}
-    .status-dot { width: 6px; height: 6px; background-color: var(--danger); border-radius: 50%; transition: all 0.3s; }
-    .status-dot.active { background-color: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
-
+    
+    .app-title { font-size: 12px; font-weight: 700; letter-spacing: 4px; color: var(--text-muted); text-transform: uppercase; }
+    
     .telemetry-bar {
-      width: 100%; background: rgba(0, 0, 0, 0.2); padding: 8px 20px; display: flex; justify-content: space-between;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.02); font-size: 10px; font-family: 'Courier New', monospace; 
-      letter-spacing: 1px; color: var(--accent-teal); transition: opacity 0.3s;
+      width: 100%; background: rgba(255, 255, 255, 0.015);
+      padding: 8px 24px; display: flex; justify-content: space-between;
+      border-top: 1px solid rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      font-size: 10px; font-family: 'Courier New', monospace; letter-spacing: 1.5px; color: var(--accent-teal);
     }
+    
+    .status-indicator { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 1px;}
+    .status-dot { width: 8px; height: 8px; background-color: #ff4400; border-radius: 50%; box-shadow: 0 0 8px rgba(255, 68, 0, 0.5); transition: all 0.3s; }
+    .status-dot.active { background-color: var(--accent-cyan); box-shadow: 0 0 12px var(--accent-cyan); animation: pulseDot 2s infinite alternate; }
 
-    /* --- MAIN LAYOUT & RESPONSIVENESS --- */
+    @keyframes pulseDot { 0% { opacity: 0.6; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1.1); } }
+
     main { 
       flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-      position: relative; width: 100%; padding: 20px; gap: 20px;
+      position: relative; width: 100%; padding: 20px; gap: 30px;
     }
     
-    .speed-container { display: flex; flex-direction: column; align-items: center; z-index: 10; }
+    .speed-container { display: flex; flex-direction: column; align-items: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     #speed { 
-      font-family: 'Courier New', monospace; font-size: clamp(120px, 35vw, 220px); font-weight: 900; 
-      line-height: 0.8; color: var(--accent-cyan); text-shadow: 0 0 20px rgba(102, 252, 241, 0.2); 
-      transition: text-shadow 0.1s ease, color 0.5s ease;
+      font-family: 'Courier New', monospace; font-size: clamp(120px, 35vh, 220px); font-weight: 900; 
+      line-height: 0.8; color: var(--accent-cyan); 
+      text-shadow: 0 0 40px rgba(102, 252, 241, 0.1); 
+      transition: color 0.3s, text-shadow 0.3s;
     }
-    #unit { font-size: 16px; font-weight: 700; letter-spacing: 10px; color: var(--accent-teal); margin-top: 15px; margin-right: -10px; }
+    .audio-active #speed { text-shadow: 0 0 60px rgba(102, 252, 241, 0.4); }
+    #unit { font-size: 16px; font-weight: 700; letter-spacing: 10px; color: var(--accent-teal); margin-top: 20px; opacity: 0.8; }
     
-    #visualizer-container {
-      width: 100%; height: 80px; max-width: 600px; position: relative;
-      opacity: 1; transition: opacity 0.3s; pointer-events: none;
+    /* New Waveform Box */
+    .waveform-box {
+      width: 100%; max-width: 320px; height: 80px;
+      background: rgba(31, 40, 51, 0.4);
+      border: 1px solid rgba(102, 252, 241, 0.15);
+      border-radius: 16px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.3);
+      position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s;
+    }
+    .waveform-box::before {
+      content: 'AUDIO telemetry'; position: absolute; top: 6px; left: 12px;
+      font-size: 7px; color: var(--accent-teal); opacity: 0.5; letter-spacing: 2px; font-family: monospace;
     }
     canvas { width: 100%; height: 100%; }
 
-    #debug-label { position: absolute; bottom: 20px; font-size: 10px; color: var(--danger); letter-spacing: 2px; font-weight: bold; opacity: 0; transition: opacity 0.3s; text-align: center; width: 100%; pointer-events: none;}
-    #debug-label.visible { opacity: 1; }
-
-    /* --- CONTROLS & SETTINGS --- */
-    .controls-bar { 
-      width: 100%; padding: 15px 20px 30px 20px; display: flex; gap: 10px; justify-content: center; 
-      background: var(--surface-color); z-index: 20; border-top: 1px solid rgba(255, 255, 255, 0.05);
+    #debug-label { 
+      position: absolute; bottom: 20px; font-size: 10px; color: #ff4400; 
+      letter-spacing: 2px; font-weight: bold; opacity: 0; transition: opacity 0.3s;
+      pointer-events: none;
     }
+    #debug-label.visible { opacity: 1; animation: flashText 1.5s infinite; }
+    @keyframes flashText { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.3; } }
+
+    .controls-bar { width: 100%; padding: 20px 24px 35px 24px; display: flex; justify-content: center; background: linear-gradient(0deg, rgba(11,12,16,1) 0%, rgba(31,40,51,0) 100%); z-index: 20; }
     button { 
-      flex: 1; max-width: 250px; padding: 16px; background: rgba(0, 0, 0, 0.4); 
-      border: 1px solid rgba(255, 255, 255, 0.08); color: var(--text-main); font-size: 11px; 
-      font-weight: 800; letter-spacing: 2px; border-radius: 8px; text-transform: uppercase; transition: all 0.2s;
+      width: 100%; max-width: 350px; padding: 18px; 
+      background: rgba(31, 40, 51, 0.6); backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.05); color: var(--text-main); 
+      font-size: 12px; font-weight: 700; letter-spacing: 3px; border-radius: 16px; 
+      text-transform: uppercase; transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
-    button.active-toggle { background: rgba(102, 252, 241, 0.1); border-color: var(--accent-cyan); color: var(--accent-cyan); }
-    button:active { transform: scale(0.98); }
-
-    /* Settings Menu */
-    #settings-panel {
-      position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px;
-      background: rgba(11, 12, 16, 0.95); border: 1px solid var(--accent-teal); border-radius: 12px;
-      padding: 20px; display: flex; flex-direction: column; gap: 15px; z-index: 50;
-      opacity: 0; pointer-events: none; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); backdrop-filter: blur(10px);
-    }
-    #settings-panel.open { opacity: 1; pointer-events: all; bottom: 100px; }
+    button:active { transform: scale(0.97); }
+    button.active-toggle { background: rgba(102, 252, 241, 0.08); border-color: rgba(102, 252, 241, 0.4); color: var(--accent-cyan); box-shadow: 0 0 20px rgba(102, 252, 241, 0.15); }
     
-    .setting-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; letter-spacing: 1px; }
-    select { 
-      background: var(--surface-color); color: var(--accent-cyan); border: 1px solid rgba(255, 255, 255, 0.1); 
-      padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 11px; font-weight: bold; outline: none;
-    }
+    #secret-trigger { position: absolute; top: 0; left: 0; width: 100px; height: 80px; z-index: 100; }
 
-    #secret-trigger { position: absolute; top: 0; left: 0; width: 80px; height: 80px; z-index: 100; }
-
-    /* --- SIMPLE MODE OVERRIDES --- */
-    body.simple-mode .telemetry-bar { opacity: 0; pointer-events: none; height: 0; padding: 0; border: none; }
-    body.simple-mode #visualizer-container { opacity: 0; height: 0; margin: 0; }
-    body.simple-mode main { gap: 0; }
-
-    /* --- LANDSCAPE DASHBOARD OVERRIDES --- */
-    @media (orientation: landscape) and (min-height: 300px) {
-      main { flex-direction: row; justify-content: space-between; padding: 0 40px; }
-      .speed-container { align-items: flex-start; flex: 1; }
-      #speed { font-size: clamp(100px, 25vw, 180px); }
-      #visualizer-container { flex: 2; height: 120px; max-width: none; }
-      .telemetry-bar { flex-direction: column; width: auto; background: transparent; border: none; align-items: flex-end; justify-content: center; gap: 15px; padding: 0 40px; font-size: 12px; }
-      #debug-label { bottom: 10px; }
-      #settings-panel { bottom: 80px; }
-      body.simple-mode main { justify-content: center; }
-      body.simple-mode .speed-container { align-items: center; flex: unset; }
+    /* LANDSCAPE (Dashboard Mode) */
+    @media (orientation: landscape) {
+      main { flex-direction: row; justify-content: center; gap: 8vw; padding: 0 40px; }
+      .speed-container { align-items: flex-start; }
+      #speed { font-size: clamp(100px, 28vw, 240px); }
+      #unit { margin-top: 5px; }
+      .waveform-box { max-width: 250px; height: 120px; }
+      .controls-bar { padding: 15px 40px 25px 40px; }
+      button { max-width: 300px; padding: 14px; }
     }
   </style>
 </head>
@@ -119,119 +121,58 @@
     <div class="app-title">AVAS Core V1.15</div>
     <div class="status-indicator"><div class="status-dot" id="gps-dot"></div><span id="gps-text">GPS</span></div>
   </header>
+  <div class="telemetry-bar"><span id="acc-val">ACCURACY: --</span><span id="head-val">SIM MODE: OFF</span></div>
   
-  <div class="telemetry-bar" id="telemetry">
-    <div id="trip-val">TRIP: 0.00 MI</div>
-    <div id="time-val">TIME: 00:00</div>
-    <div id="head-val">SIM: OFF</div>
-  </div>
-
   <main id="interaction-zone">
-    <div class="speed-container">
-      <div id="speed">0</div>
-      <div id="unit">MPH</div>
-    </div>
-    
-    <div id="visualizer-container">
-      <canvas id="waveform"></canvas>
-    </div>
-    
+    <div class="speed-container"><div id="speed">0</div><div id="unit">MPH</div></div>
+    <div class="waveform-box"><canvas id="visualizer"></canvas></div>
     <div id="debug-label">SIMULATION ACTIVE - SLIDE TO CONTROL</div>
   </main>
-
-  <div class="controls-bar">
-    <button id="audio-btn">Audio Off</button>
-    <button id="settings-btn">Config</button>
-  </div>
-
-  <div id="settings-panel">
-    <div class="setting-row">
-      <span>UI MODE</span>
-      <select id="mode-select">
-        <option value="complex">COMPLEX (HUD)</option>
-        <option value="simple">SIMPLE (MINIMAL)</option>
-      </select>
-    </div>
-    <div class="setting-row">
-      <span>STEREO SWIRL</span>
-      <select id="stereo-select">
-        <option value="on">ENABLED</option>
-        <option value="off">DISABLED</option>
-      </select>
-    </div>
-  </div>
+  
+  <div class="controls-bar"><button id="audio-btn">Audio Off</button></div>
 
   <script>
-    // --- DOM Elements ---
     const speedEl = document.getElementById('speed');
     const gpsDot = document.getElementById('gps-dot');
-    const tripVal = document.getElementById('trip-val');
-    const timeVal = document.getElementById('time-val');
+    const accVal = document.getElementById('acc-val');
     const simVal = document.getElementById('head-val');
     const audioBtn = document.getElementById('audio-btn');
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsPanel = document.getElementById('settings-panel');
-    const modeSelect = document.getElementById('mode-select');
-    const stereoSelect = document.getElementById('stereo-select');
     const debugLabel = document.getElementById('debug-label');
     const interactionZone = document.getElementById('interaction-zone');
-    const canvas = document.getElementById('waveform');
+    const canvas = document.getElementById('visualizer');
     const canvasCtx = canvas.getContext('2d');
 
-    // --- State Variables ---
-    let audioCtx, gainIdle, filter, analyser, stereoPanner, swirlLFO;
+    let audioCtx, gainIdle, filter, analyser;
     let choir = []; 
     let vibratoLFO, vibratoGain;
     let audioEnabled = false;
     let isSimMode = false;
     let animationId;
-    
-    // Telemetry Data
-    let startTime = null;
-    let totalDistanceMiles = 0;
-    let lastCoords = null;
-    let telemetryTimer = null;
 
-    // --- Resize Canvas ---
+    // Handle high-DPI canvas resizing for crisp lines
     function resizeCanvas() {
-      canvas.width = canvas.parentElement.clientWidth;
-      canvas.height = canvas.parentElement.clientHeight;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      canvasCtx.scale(dpr, dpr);
     }
     window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
 
-    // --- Audio Engine Setup ---
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       
-      // Visualizer Node
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 512; // Smooth line resolution
-      
-      // Filter
       filter = audioCtx.createBiquadFilter();
       filter.type = "lowpass";
       filter.frequency.value = 1000;
       
-      // Master Gain
       gainIdle = audioCtx.createGain(); 
       gainIdle.gain.setValueAtTime(0.0001, audioCtx.currentTime);
 
-      // Stereo Spatialization (Swirl)
-      stereoPanner = audioCtx.createStereoPanner();
-      stereoPanner.pan.value = 0;
-      
-      swirlLFO = audioCtx.createOscillator();
-      swirlLFO.type = 'sine';
-      swirlLFO.frequency.value = 0.2; // Slow swirl
-      const swirlGain = audioCtx.createGain();
-      swirlGain.gain.value = stereoSelect.value === 'on' ? 0.6 : 0; // Depth of pan
-      
-      swirlLFO.connect(swirlGain);
-      swirlGain.connect(stereoPanner.pan);
-      swirlLFO.start();
+      // Initialize Analyser for Waveform
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
 
-      // Wawa Engine
       vibratoLFO = audioCtx.createOscillator();
       vibratoGain = audioCtx.createGain();
       vibratoLFO.frequency.value = 1.8; 
@@ -239,7 +180,6 @@
       vibratoLFO.connect(vibratoGain);
       vibratoLFO.start();
 
-      // The Angelic Choir
       const rootFreq = 220.00; 
       const ratios = [1.0, 1.49, 1.88, 2.1]; 
       choir = ratios.map((ratio, index) => {
@@ -254,158 +194,138 @@
         osc.start();
         return osc;
       });
-
-      // Routing
+      
       gainIdle.connect(filter);
-      filter.connect(stereoPanner);
-      stereoPanner.connect(analyser);
+      filter.connect(analyser); // Route through analyser
       analyser.connect(audioCtx.destination);
       
-      drawWaveform();
+      resizeCanvas();
+      drawVisualizer();
     }
 
-    // --- Audio Control ---
+    function drawVisualizer() {
+      animationId = requestAnimationFrame(drawVisualizer);
+      
+      const width = canvas.width / (window.devicePixelRatio || 1);
+      const height = canvas.height / (window.devicePixelRatio || 1);
+      
+      canvasCtx.clearRect(0, 0, width, height);
+
+      if (!audioEnabled || !analyser) {
+        // Draw flatline when off
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(0, height / 2);
+        canvasCtx.lineTo(width, height / 2);
+        canvasCtx.strokeStyle = 'rgba(69, 162, 158, 0.3)';
+        canvasCtx.lineWidth = 2;
+        canvasCtx.stroke();
+        return;
+      }
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyser.getByteTimeDomainData(dataArray);
+
+      canvasCtx.lineWidth = 2.5;
+      canvasCtx.strokeStyle = '#66fcf1';
+      canvasCtx.shadowBlur = 10;
+      canvasCtx.shadowColor = '#66fcf1';
+      canvasCtx.beginPath();
+
+      const sliceWidth = width * 1.0 / bufferLength;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = v * (height / 2);
+
+        if (i === 0) canvasCtx.moveTo(x, y);
+        else canvasCtx.lineTo(x, y);
+
+        x += sliceWidth;
+      }
+
+      canvasCtx.lineTo(width, height / 2);
+      canvasCtx.stroke();
+      canvasCtx.shadowBlur = 0; // Reset shadow for next frame
+    }
+
     audioBtn.addEventListener('click', () => {
       if (!audioCtx) initAudio();
       audioEnabled = !audioEnabled;
       audioBtn.textContent = audioEnabled ? "Audio On" : "Audio Off";
       audioBtn.classList.toggle('active-toggle', audioEnabled);
+      document.body.classList.toggle('audio-active', audioEnabled);
+      
       if (audioEnabled) {
         audioCtx.resume();
-        if(!startTime) startTelemetry();
         updateSystem(parseFloat(speedEl.textContent) || 0);
       } else {
         gainIdle.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
       }
     });
 
-    // --- Visualizer & Kinetic Glow ---
-    function drawWaveform() {
-      if(!audioCtx || !analyser) return;
-      animationId = requestAnimationFrame(drawWaveform);
-      
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      analyser.getByteTimeDomainData(dataArray);
-      
-      canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-      canvasCtx.lineWidth = 2;
-      canvasCtx.strokeStyle = '#66fcf1';
-      canvasCtx.beginPath();
-      
-      let sliceWidth = canvas.width * 1.0 / bufferLength;
-      let x = 0;
-      let totalAmp = 0;
-
-      for (let i = 0; i < bufferLength; i++) {
-        let v = dataArray[i] / 128.0;
-        let y = v * canvas.height / 2;
-        if (i === 0) canvasCtx.moveTo(x, y);
-        else canvasCtx.lineTo(x, y);
-        x += sliceWidth;
-        totalAmp += Math.abs(v - 1);
-      }
-      canvasCtx.lineTo(canvas.width, canvas.height / 2);
-      canvasCtx.stroke();
-
-      // Kinetic Glow: Tie text shadow to audio amplitude
-      const avgAmp = totalAmp / bufferLength;
-      const glowIntensity = Math.min(60, 10 + (avgAmp * 500)); 
-      speedEl.style.textShadow = `0 0 ${glowIntensity}px rgba(102, 252, 241, ${0.2 + avgAmp})`;
-    }
-
-    // --- Core Update Logic ---
     function updateSystem(mph, accuracy = null) {
       const now = audioCtx ? audioCtx.currentTime : 0;
-      const ramp = 0.1;
-      
+      const ramp = 0.15; // Slightly slower ramp for visual smoothness
       speedEl.textContent = Math.max(0, Math.round(mph));
+      if (accuracy !== null) accVal.textContent = `ACCURACY: ${Math.round(accuracy)}m`;
       
-      // Color heat mapping based on speed
-      if(mph > 50) {
-        speedEl.style.color = '#ffffff'; // Hot white at high speeds
-      } else {
-        speedEl.style.color = 'var(--accent-cyan)';
-      }
-
       if (audioEnabled && audioCtx) {
         const cloudShift = 1 + (mph / 110); 
         const rootFreq = 220.00;
         const ratios = [1.0, 1.49, 1.88, 2.1];
-        
         choir.forEach((osc, i) => {
           osc.frequency.linearRampToValueAtTime(rootFreq * ratios[i] * cloudShift, now + ramp);
         });
         vibratoLFO.frequency.linearRampToValueAtTime(1.8 + (mph / 9), now + ramp);
         vibratoGain.gain.linearRampToValueAtTime(3 + (mph / 4), now + ramp);
-        
-        // Swirl speeds up slightly with bike speed
-        swirlLFO.frequency.linearRampToValueAtTime(0.2 + (mph / 200), now + ramp);
-
         const targetVol = 0.005 + (mph / 300); 
         gainIdle.gain.linearRampToValueAtTime(targetVol, now + ramp);
         filter.frequency.linearRampToValueAtTime(1000 + (mph * 45), now + ramp);
       }
     }
 
-    // --- Telemetry (Trip & Timer) ---
-    function startTelemetry() {
-      if(telemetryTimer) return;
-      startTime = Date.now();
-      telemetryTimer = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
-        const secs = String(elapsed % 60).padStart(2, '0');
-        timeVal.textContent = `TIME: ${mins}:${secs}`;
-      }, 1000);
-    }
-
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 3958.8; // Earth radius in miles
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
-    }
-
-    // --- Settings Menu Logic ---
-    settingsBtn.addEventListener('click', () => {
-      settingsPanel.classList.toggle('open');
-      settingsBtn.classList.toggle('active-toggle');
-    });
-
-    modeSelect.addEventListener('change', (e) => {
-      if(e.target.value === 'simple') {
-        document.body.classList.add('simple-mode');
-      } else {
-        document.body.classList.remove('simple-mode');
-        setTimeout(resizeCanvas, 300); // Fix canvas size after un-hiding
-      }
-    });
-
-    stereoSelect.addEventListener('change', (e) => {
-      if(!audioCtx) return;
-      // Reconnect/adjust swirl gain based on setting
-      // Simplified: We grab the gain node connected to pan and set value
-      const swirlGain = swirlLFO._connections ? swirlLFO._connections[0] : null; // Hacky fallback
-      // Proper way: disconnect and rebuild, but let's just re-init audio entirely if needed, 
-      // or easier, we rebuild the graph. Since we didn't store swirlGain globally, let's just 
-      // toggle the destination of the panner.
-      if(e.target.value === 'off') {
-        stereoPanner.pan.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
-      }
-    });
-
-    // --- Interaction & Sim Mode ---
     document.getElementById('secret-trigger').addEventListener('click', () => {
       isSimMode = !isSimMode;
-      simVal.textContent = isSimMode ? "SIM: ON" : "SIM: OFF";
-      simVal
+      simVal.textContent = isSimMode ? "SIM MODE: ON" : "SIM MODE: OFF";
+      simVal.style.color = isSimMode ? "#66fcf1" : "#45a29e";
+      debugLabel.classList.toggle('visible', isSimMode);
+      if (!isSimMode) {
+        updateSystem(0);
+        gpsDot.classList.remove('active');
+      }
+    });
 
+    const handleTouch = (e) => {
+      if (!isSimMode) return;
+      const touch = e.touches ? e.touches[0] : e;
+      const rect = interactionZone.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const percent = Math.min(Math.max(x / rect.width, 0), 1);
+      updateSystem(percent * 85);
+    };
 
+    interactionZone.addEventListener('touchstart', handleTouch);
+    interactionZone.addEventListener('touchmove', handleTouch);
+    interactionZone.addEventListener('mousedown', () => { window.addEventListener('mousemove', handleTouch); });
+    window.addEventListener('mouseup', () => { window.removeEventListener('mousemove', handleTouch); });
+
+    function startGPS() {
+      navigator.geolocation.watchPosition((pos) => {
+        if (!isSimMode) {
+          gpsDot.classList.add('active');
+          updateSystem(pos.coords.speed > 0 ? pos.coords.speed * 2.237 : 0, pos.coords.accuracy);
+        }
+      }, null, { enableHighAccuracy: true, maximumAge: 0 });
+    }
+
+    // Init canvas size
+    resizeCanvas();
+    startGPS();
+  </script>
+</body>
+</html>
 
 
 
