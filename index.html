@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>E-Moto AVAS System V6</title>
+  <title>E-Moto AVAS System V7</title>
   <style>
     :root {
       --bg-color: #0b0c10;
@@ -12,8 +12,6 @@
       --accent-teal: #45a29e;
       --text-main: #c5c6c7;
       --text-muted: #7a7a7a;
-      --warning: #ffaa00;
-      --danger: #ff4400;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -49,7 +47,7 @@
     }
 
     .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-muted); }
-    .status-dot { width: 6px; height: 6px; background-color: var(--danger); border-radius: 50%; transition: all 0.3s; }
+    .status-dot { width: 6px; height: 6px; background-color: #ff4400; border-radius: 50%; transition: all 0.3s; }
     .status-dot.active { background-color: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan); }
 
     main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
@@ -68,7 +66,7 @@
 <body>
   <div id="secret-trigger"></div>
   <header>
-    <div class="app-title">AVAS Core V6</div>
+    <div class="app-title">AVAS Core V7</div>
     <div class="status-indicator"><div class="status-dot" id="gps-dot"></div><span id="gps-text">GPS</span></div>
   </header>
   <div class="telemetry-bar"><span id="acc-val">ACCURACY: --</span><span id="head-val">HEADING: --</span></div>
@@ -87,57 +85,47 @@
     const debugCheck = document.getElementById('debug-check');
     const manualSlider = document.getElementById('manual-slider');
 
-    let audioCtx, gainMain, gainIdle, filter;
-    let osc1, osc2; 
+    let audioCtx, gainIdle, filter;
     let choir = []; 
     let lfo;
     let audioEnabled = false;
 
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Clean filter to keep it "cloudy"
       filter = audioCtx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.value = 1500;
+      filter.frequency.value = 2000;
       
-      gainMain = audioCtx.createGain(); // For high speed whine
-      gainIdle = audioCtx.createGain(); // For angelic cloud
-      
-      gainMain.gain.value = 0;
+      gainIdle = audioCtx.createGain(); 
       gainIdle.gain.value = 0;
 
-      // CLOUD LAYER (3 harmonic sines)
+      // THE ANGELIC CLOUD (Harmonic sine stack)
       const rootFreq = 349.23; // F4
-      const ratios = [1.0, 1.25, 1.5]; // Major chord
+      const ratios = [1.0, 1.25, 1.5]; // Major Chord
       
       choir = ratios.map(ratio => {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = 'sine';
         osc.frequency.value = rootFreq * ratio;
-        g.gain.value = 0.08; 
+        g.gain.value = 0.1; 
         osc.connect(g);
         g.connect(gainIdle);
         osc.start();
         return osc;
       });
 
-      // LFO for breathing
+      // Subtle breathing pulse
       lfo = audioCtx.createOscillator();
       const lfoGain = audioCtx.createGain();
-      lfo.frequency.value = 0.4;
-      lfoGain.gain.value = 0.015;
+      lfo.frequency.value = 0.5;
+      lfoGain.gain.value = 0.02;
       lfo.connect(lfoGain);
       lfoGain.connect(gainIdle.gain);
       lfo.start();
 
-      // WHINE LAYER (Mechanical)
-      osc1 = audioCtx.createOscillator();
-      osc2 = audioCtx.createOscillator();
-      osc1.type = 'sine'; osc2.type = 'sine';
-      osc1.connect(gainMain); osc2.connect(gainMain);
-      osc1.start(); osc2.start();
-
-      gainMain.connect(filter);
       gainIdle.connect(filter);
       filter.connect(audioCtx.destination);
     }
@@ -146,11 +134,11 @@
       if (!audioCtx) initAudio();
       audioEnabled = !audioEnabled;
       audioBtn.textContent = audioEnabled ? "Audio On" : "Audio Off";
+      audioBtn.classList.toggle('active-toggle', audioEnabled);
       if (audioEnabled) {
         audioCtx.resume();
         updateSystem(parseFloat(speedEl.textContent) || 0);
       } else {
-        gainMain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
         gainIdle.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
       }
     });
@@ -160,32 +148,23 @@
       if (accuracy) accVal.textContent = `ACCURACY: ${Math.round(accuracy)}m`;
       
       if (audioEnabled && audioCtx) {
-        // 1. CLOUD LAYER LOGIC
-        // It stays prominent but pitch shifts up slowly with speed
-        const cloudShift = 1 + (mph / 120); 
+        // PITCH MODULATION: The cloud rises as you speed up
+        // 1.0 multiplier at 0mph, up to ~2.0 at 80mph
+        const cloudShift = 1 + (mph / 80); 
         const rootFreq = 349.23;
         const ratios = [1.0, 1.25, 1.5];
-        choir.forEach((osc, i) => {
-          osc.frequency.setTargetAtTime(rootFreq * ratios[i] * cloudShift, audioCtx.currentTime, 0.2);
-        });
-        // Cloud volume is steady but dips slightly at very high speeds to let whine lead
-        const cloudVol = mph < 40 ? 0.08 : 0.08 * (1 - (mph - 40) / 100);
-        gainIdle.gain.setTargetAtTime(cloudVol, audioCtx.currentTime, 0.4);
-
-        // 2. WHINE LAYER LOGIC (The "Ease In")
-        osc1.frequency.setTargetAtTime(100 + (mph * 6), audioCtx.currentTime, 0.1);
-        osc2.frequency.setTargetAtTime(300 + (mph * 22), audioCtx.currentTime, 0.1);
         
-        // Starts at 10mph, gradually reaches full presence by 60mph
-        let whineVol = 0;
-        if (mph > 10) {
-          whineVol = Math.min(0.25, (mph - 10) / 180); 
-        }
-        gainMain.gain.setTargetAtTime(whineVol, audioCtx.currentTime, 0.5);
+        choir.forEach((osc, i) => {
+          osc.frequency.setTargetAtTime(rootFreq * ratios[i] * cloudShift, audioCtx.currentTime, 0.3);
+        });
 
-        // 3. FILTER
-        // Opens up to allow high-pitch mechanical sounds through as we go faster
-        filter.frequency.setTargetAtTime(1200 + (mph * 80), audioCtx.currentTime, 0.3);
+        // VOLUME & INTENSITY
+        // Slightly louder as you go faster to cut through wind, but stays smooth
+        const targetVol = 0.1 + (mph / 400); 
+        gainIdle.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.5);
+
+        // FILTER: Opens slightly as you speed up to add "shimmer"
+        filter.frequency.setTargetAtTime(1500 + (mph * 20), audioCtx.currentTime, 0.5);
       }
     }
 
