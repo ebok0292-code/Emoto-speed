@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>E-Moto AVAS System V2</title>
+  <title>E-Moto AVAS System V3</title>
   <style>
     :root {
       --bg-color: #0b0c10;
@@ -47,7 +47,6 @@
       text-transform: uppercase;
     }
 
-    /* ── TELEMETRY BAR (NEW IN V2) ── */
     .telemetry-bar {
       width: 100%;
       background: rgba(255, 255, 255, 0.02);
@@ -150,7 +149,6 @@
       color: var(--accent-cyan);
     }
 
-    /* ── MODAL ── */
     #modal {
       display: none;
       position: fixed;
@@ -200,7 +198,7 @@
   <div id="secret-trigger"></div>
 
   <header>
-    <div class="app-title">AVAS Core V2</div>
+    <div class="app-title">AVAS Core V3</div>
     <div class="status-indicator">
       <div class="status-dot" id="gps-dot"></div>
       <span id="gps-text">GPS</span>
@@ -251,19 +249,41 @@
     const manualSlider = document.getElementById('manual-slider');
     const secretTrigger = document.getElementById('secret-trigger');
 
-    let audioCtx, osc1, osc2, gainNode;
+    let audioCtx, osc1, osc2, oscIdle, gainMain, gainIdle;
     let audioEnabled = false;
 
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Main layers (Speed based)
       osc1 = audioCtx.createOscillator();
       osc2 = audioCtx.createOscillator();
-      gainNode = audioCtx.createGain();
-      osc1.type = 'sine'; osc2.type = 'sine';
-      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-      osc1.connect(gainNode); osc2.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      osc1.start(); osc2.start();
+      gainMain = audioCtx.createGain();
+      
+      // Idle layer (Angelic Hum)
+      oscIdle = audioCtx.createOscillator();
+      gainIdle = audioCtx.createGain();
+
+      osc1.type = 'sine'; 
+      osc2.type = 'sine';
+      oscIdle.type = 'triangle'; // Triangle is slightly "softer" but present
+
+      gainMain.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainIdle.gain.setValueAtTime(0, audioCtx.currentTime);
+
+      osc1.connect(gainMain); 
+      osc2.connect(gainMain);
+      oscIdle.connect(gainIdle);
+
+      gainMain.connect(audioCtx.destination);
+      gainIdle.connect(audioCtx.destination);
+
+      osc1.start(); 
+      osc2.start();
+      oscIdle.start();
+      
+      // Fixed frequency for the angelic idle
+      oscIdle.frequency.setValueAtTime(110, audioCtx.currentTime); 
     }
 
     audioBtn.addEventListener('click', () => {
@@ -271,8 +291,14 @@
       audioEnabled = !audioEnabled;
       audioBtn.textContent = audioEnabled ? "Audio On" : "Audio Off";
       audioBtn.classList.toggle('active-toggle', audioEnabled);
-      if (audioEnabled) audioCtx.resume();
-      else gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+      if (audioEnabled) {
+        audioCtx.resume();
+        // Trigger idle sound immediately if speed is 0
+        updateSystem(parseFloat(speedEl.textContent) || 0);
+      } else {
+        gainMain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+        gainIdle.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+      }
     });
 
     function getHeading(deg) {
@@ -287,10 +313,18 @@
       if (heading !== null) headVal.textContent = `HEADING: ${getHeading(heading)}`;
 
       if (audioEnabled && audioCtx) {
+        // Speed Pitch
         osc1.frequency.setTargetAtTime(80 + (mph * 3), audioCtx.currentTime, 0.1);
         osc2.frequency.setTargetAtTime(250 + (mph * 20), audioCtx.currentTime, 0.1);
-        const vol = mph > 0.5 ? Math.min(0.4, 0.1 + (mph / 45)) : 0;
-        gainNode.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.1);
+        
+        // Speed Volume (fades in as you move)
+        const mainVol = mph > 0.2 ? Math.min(0.4, 0.1 + (mph / 45)) : 0;
+        gainMain.gain.setTargetAtTime(mainVol, audioCtx.currentTime, 0.1);
+
+        // Idle Volume (Angelic hum fades OUT as you move faster)
+        // Strongest at 0, gone by 10 mph
+        const idleVol = mph < 10 ? 0.15 * (1 - (mph / 10)) : 0;
+        gainIdle.gain.setTargetAtTime(idleVol, audioCtx.currentTime, 0.2);
       }
       
       if (mph < 20) speedEl.style.color = 'var(--accent-cyan)';
@@ -324,6 +358,7 @@
   </script>
 </body>
 </html>
+
 
 
 
