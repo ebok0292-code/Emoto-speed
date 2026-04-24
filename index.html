@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>E-Moto AVAS System V11</title>
+  <title>E-Moto AVAS System V14</title>
   <style>
     :root {
       --bg-color: #0b0c10;
@@ -13,16 +13,13 @@
       --text-main: #c5c6c7;
       --text-muted: #7a7a7a;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      height: 100dvh; 
-      overflow: hidden;
-      user-select: none;
+      display: flex; flex-direction: column; height: 100dvh; overflow: hidden; user-select: none;
+      touch-action: none;
     }
     header {
       width: 100%; padding: 12px 20px;
@@ -39,50 +36,59 @@
     .status-indicator { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-muted); }
     .status-dot { width: 6px; height: 6px; background-color: #ff4400; border-radius: 50%; transition: all 0.3s; }
     .status-dot.active { background-color: var(--accent-cyan); box-shadow: 0 0 8px var(--accent-cyan); }
+    
     main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
     #speed { font-family: 'Courier New', monospace; font-size: clamp(100px, 45vw, 180px); font-weight: 900; line-height: 0.8; color: var(--accent-cyan); text-shadow: 0 0 40px rgba(102, 252, 241, 0.3); }
     #unit { font-size: 18px; font-weight: 600; letter-spacing: 8px; color: var(--accent-teal); margin-top: 15px; }
-    .controls-bar { width: 100%; padding: 15px 20px 30px 20px; display: flex; gap: 12px; background: var(--surface-color); z-index: 20; }
-    button { flex: 1; padding: 14px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--text-main); font-size: 11px; font-weight: 700; letter-spacing: 1px; border-radius: 12px; text-transform: uppercase; }
+    
+    #debug-label { 
+      position: absolute; bottom: 20px; font-size: 10px; color: #ff4400; 
+      letter-spacing: 2px; font-weight: bold; opacity: 0; transition: opacity 0.3s;
+    }
+    #debug-label.visible { opacity: 1; }
+
+    .controls-bar { width: 100%; padding: 15px 20px 30px 20px; display: flex; justify-content: center; background: var(--surface-color); z-index: 20; }
+    button { width: 100%; max-width: 400px; padding: 16px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); color: var(--text-main); font-size: 12px; font-weight: 700; letter-spacing: 2px; border-radius: 12px; text-transform: uppercase; }
     button.active-toggle { background: rgba(102, 252, 241, 0.1); border-color: var(--accent-cyan); color: var(--accent-cyan); }
-    #debug-panel { position: absolute; top: 100px; right: 15px; background: var(--surface-color); padding: 15px; border-radius: 12px; z-index: 50; width: 180px; display: none; }
-    #secret-trigger { position: absolute; top: 0; left: 0; width: 60px; height: 60px; z-index: 30; }
+    
+    #secret-trigger { position: absolute; top: 0; left: 0; width: 80px; height: 80px; z-index: 100; }
   </style>
 </head>
 <body>
   <div id="secret-trigger"></div>
   <header>
-    <div class="app-title">AVAS Core V11</div>
+    <div class="app-title">AVAS Core V14</div>
     <div class="status-indicator"><div class="status-dot" id="gps-dot"></div><span id="gps-text">GPS</span></div>
   </header>
-  <div class="telemetry-bar"><span id="acc-val">ACCURACY: --</span><span id="head-val">HEADING: --</span></div>
-  <main>
+  <div class="telemetry-bar"><span id="acc-val">ACCURACY: --</span><span id="head-val">SIM MODE: OFF</span></div>
+  <main id="interaction-zone">
     <div class="speed-container"><div id="speed">0</div><div id="unit">MPH</div></div>
+    <div id="debug-label">SIMULATION ACTIVE - SLIDE TO CONTROL</div>
   </main>
-  <div class="controls-bar"><button id="audio-btn">Audio Off</button><button id="menu-btn">Profile</button></div>
-  <div id="debug-panel"><div style="font-size: 10px; margin-bottom: 10px;">SIMULATE</div><input type="checkbox" id="debug-check"><input type="range" id="manual-slider" min="0" max="80" value="0" style="width: 100%;"></div>
+  <div class="controls-bar"><button id="audio-btn">Audio Off</button></div>
 
   <script>
     const speedEl = document.getElementById('speed');
     const gpsDot = document.getElementById('gps-dot');
     const accVal = document.getElementById('acc-val');
+    const simVal = document.getElementById('head-val');
     const audioBtn = document.getElementById('audio-btn');
-    const debugCheck = document.getElementById('debug-check');
-    const manualSlider = document.getElementById('manual-slider');
+    const debugLabel = document.getElementById('debug-label');
+    const interactionZone = document.getElementById('interaction-zone');
 
     let audioCtx, gainIdle, filter;
     let choir = []; 
     let vibratoLFO, vibratoGain;
     let audioEnabled = false;
+    let isSimMode = false;
 
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       filter = audioCtx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.value = 1200; // Lower filter at idle for "muffled/distant" feel
-      
+      filter.frequency.value = 1000;
       gainIdle = audioCtx.createGain(); 
-      gainIdle.gain.value = 0;
+      gainIdle.gain.setValueAtTime(0.0001, audioCtx.currentTime);
 
       vibratoLFO = audioCtx.createOscillator();
       vibratoGain = audioCtx.createGain();
@@ -93,7 +99,6 @@
 
       const rootFreq = 220.00; 
       const ratios = [1.0, 1.49, 1.88, 2.1]; 
-      
       choir = ratios.map((ratio, index) => {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
@@ -106,7 +111,6 @@
         osc.start();
         return osc;
       });
-
       gainIdle.connect(filter);
       filter.connect(audioCtx.destination);
     }
@@ -120,63 +124,74 @@
         audioCtx.resume();
         updateSystem(parseFloat(speedEl.textContent) || 0);
       } else {
-        gainIdle.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+        gainIdle.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
       }
     });
 
     function updateSystem(mph, accuracy = null) {
+      const now = audioCtx ? audioCtx.currentTime : 0;
+      const ramp = 0.1;
       speedEl.textContent = Math.max(0, Math.round(mph));
-      if (accuracy) accVal.textContent = `ACCURACY: ${Math.round(accuracy)}m`;
+      if (accuracy !== null) accVal.textContent = `ACCURACY: ${Math.round(accuracy)}m`;
       
       if (audioEnabled && audioCtx) {
-        // 1. PITCH CLIMB
         const cloudShift = 1 + (mph / 110); 
         const rootFreq = 220.00;
         const ratios = [1.0, 1.49, 1.88, 2.1];
         choir.forEach((osc, i) => {
-          osc.frequency.setTargetAtTime((rootFreq * ratios[i] * cloudShift), audioCtx.currentTime, 0.4);
+          osc.frequency.linearRampToValueAtTime(rootFreq * ratios[i] * cloudShift, now + ramp);
         });
-
-        // 2. WAWA SPEED
-        const lfoSpeed = 1.8 + (mph / 9); 
-        vibratoLFO.frequency.setTargetAtTime(lfoSpeed, audioCtx.currentTime, 0.3);
-        
-        // 3. WAWA DEPTH
-        const lfoDepth = 3 + (mph / 4);
-        vibratoGain.gain.setTargetAtTime(lfoDepth, audioCtx.currentTime, 0.3);
-
-        // 4. VOLUME (ALMOST SILENT AT 0)
-        // 0.008 is very low (less than 1% of gain destination)
-        const targetVol = 0.008 + (mph / 300); 
-        gainIdle.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.8);
-        
-        // Lower cutoff at 0 makes it even more "stealthy"
-        filter.frequency.setTargetAtTime(1000 + (mph * 45), audioCtx.currentTime, 0.6);
+        vibratoLFO.frequency.linearRampToValueAtTime(1.8 + (mph / 9), now + ramp);
+        vibratoGain.gain.linearRampToValueAtTime(3 + (mph / 4), now + ramp);
+        const targetVol = 0.005 + (mph / 300); 
+        gainIdle.gain.linearRampToValueAtTime(targetVol, now + ramp);
+        filter.frequency.linearRampToValueAtTime(1000 + (mph * 45), now + ramp);
       }
     }
 
+    // NEW SECRET TRIGGER: Instant toggle
+    document.getElementById('secret-trigger').addEventListener('click', () => {
+      isSimMode = !isSimMode;
+      simVal.textContent = isSimMode ? "SIM MODE: ON" : "SIM MODE: OFF";
+      simVal.style.color = isSimMode ? "#66fcf1" : "#45a29e";
+      debugLabel.classList.toggle('visible', isSimMode);
+      if (!isSimMode) updateSystem(0); // Reset on exit
+    });
+
+    // Interaction zone: Slide to control speed when sim is on
+    const handleTouch = (e) => {
+      if (!isSimMode) return;
+      const touch = e.touches ? e.touches[0] : e;
+      const rect = interactionZone.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const percent = Math.min(Math.max(x / rect.width, 0), 1);
+      const simulatedSpeed = percent * 85; // Max 85 MPH
+      updateSystem(simulatedSpeed);
+    };
+
+    interactionZone.addEventListener('touchstart', handleTouch);
+    interactionZone.addEventListener('touchmove', handleTouch);
+    interactionZone.addEventListener('mousedown', (e) => {
+        window.addEventListener('mousemove', handleTouch);
+    });
+    window.addEventListener('mouseup', () => {
+        window.removeEventListener('mousemove', handleTouch);
+    });
+
     function startGPS() {
       navigator.geolocation.watchPosition((pos) => {
-        if (!debugCheck.checked) {
+        if (!isSimMode) {
           gpsDot.classList.add('active');
           updateSystem(pos.coords.speed > 0 ? pos.coords.speed * 2.237 : 0, pos.coords.accuracy);
         }
       }, null, { enableHighAccuracy: true, maximumAge: 0 });
     }
 
-    document.getElementById('secret-trigger').addEventListener('click', () => {
-      const p = document.getElementById('debug-panel');
-      p.style.display = p.style.display === 'none' ? 'block' : 'none';
-    });
-
-    manualSlider.addEventListener('input', () => {
-      if (debugCheck.checked) updateSystem(parseFloat(manualSlider.value), 1);
-    });
-
     startGPS();
   </script>
 </body>
 </html>
+
 
 
 
