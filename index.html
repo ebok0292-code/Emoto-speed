@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>E-Moto AVAS System</title>
   <style>
     /* ── BASE & TYPOGRAPHY ── */
@@ -25,7 +25,9 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       display: flex;
       flex-direction: column;
+      /* Using dvh (dynamic viewport height) to prevent mobile browser cutoff */
       height: 100vh;
+      height: 100dvh; 
       overflow: hidden;
       user-select: none;
     }
@@ -33,15 +35,16 @@
     /* ── HEADER ── */
     header {
       width: 100%;
-      padding: 20px;
+      padding: 15px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 20;
     }
 
     .app-title {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 600;
       letter-spacing: 3px;
       color: var(--text-muted);
@@ -52,22 +55,22 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       letter-spacing: 1px;
       color: var(--text-muted);
       background: rgba(255,255,255,0.05);
-      padding: 6px 12px;
+      padding: 5px 10px;
       border-radius: 20px;
     }
 
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       background-color: var(--danger);
       border-radius: 50%;
       box-shadow: 0 0 8px var(--danger);
-      transition: background-color 0.3s, box-shadow 0.3s;
+      transition: all 0.3s;
     }
 
     .status-dot.active {
@@ -90,31 +93,31 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      margin-top: -20px; /* Slight offset for visual balance */
     }
 
     #speed {
       font-family: 'Courier New', monospace;
-      font-size: 160px;
+      font-size: clamp(100px, 40vw, 160px); /* Responsive sizing */
       font-weight: 900;
       line-height: 0.8;
       color: var(--accent-cyan);
       text-shadow: 0 0 40px rgba(102, 252, 241, 0.4);
-      transition: color 0.3s, text-shadow 0.3s;
     }
 
     #unit {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 600;
       letter-spacing: 10px;
       color: var(--accent-teal);
-      margin-top: 15px;
-      margin-right: -10px; /* Offset for tracking */
+      margin-top: 10px;
+      margin-right: -10px;
     }
 
     #status-text {
       position: absolute;
-      bottom: 40px;
-      font-size: 13px;
+      bottom: 30px;
+      font-size: 11px;
       color: var(--text-muted);
       letter-spacing: 2px;
       text-transform: uppercase;
@@ -123,32 +126,30 @@
     /* ── BOTTOM CONTROLS ── */
     .controls-bar {
       width: 100%;
-      padding: 20px;
+      padding: 15px 20px 25px 20px; /* Extra bottom padding for mobile home bars */
       display: flex;
-      gap: 15px;
+      gap: 12px;
       background: var(--surface-color);
       border-top: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 20;
     }
 
     button {
       flex: 1;
-      padding: 16px;
+      padding: 14px;
       background: rgba(0, 0, 0, 0.3);
       border: 1px solid rgba(255, 255, 255, 0.1);
       color: var(--text-main);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       letter-spacing: 2px;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
-      transition: all 0.2s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
-
-    button:active { transform: scale(0.97); }
 
     button.active-toggle {
       background: rgba(102, 252, 241, 0.1);
@@ -156,15 +157,15 @@
       color: var(--accent-cyan);
     }
 
-    .btn-icon { font-size: 18px; }
+    .btn-icon { font-size: 16px; }
 
     /* ── MODAL ── */
     #modal {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(11, 12, 16, 0.95);
-      backdrop-filter: blur(5px);
+      background: rgba(11, 12, 16, 0.98);
+      backdrop-filter: blur(10px);
       z-index: 100;
       flex-direction: column;
       align-items: center;
@@ -174,93 +175,76 @@
 
     .modal-title {
       color: var(--text-main);
-      font-size: 16px;
+      font-size: 14px;
       letter-spacing: 4px;
       margin-bottom: 30px;
     }
 
     .sound-list {
       width: 100%;
-      max-width: 320px;
+      max-width: 300px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
     .sound-opt {
-      padding: 16px;
+      padding: 18px;
       background: var(--surface-color);
       border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 8px;
       text-align: center;
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 12px;
       letter-spacing: 2px;
-      cursor: pointer;
-      transition: 0.2s;
     }
 
     .sound-opt.active {
       border-color: var(--accent-cyan);
       color: var(--accent-cyan);
       background: rgba(102, 252, 241, 0.05);
-      box-shadow: 0 0 15px rgba(102, 252, 241, 0.1);
     }
 
-    .sound-opt.locked {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    #close-modal {
-      margin-top: 30px;
-      max-width: 320px;
-      border-color: rgba(255, 255, 255, 0.2);
-    }
+    .sound-opt.locked { opacity: 0.3; }
 
     /* ── DEBUG PANEL ── */
     #debug-panel {
       position: absolute;
-      top: 70px;
-      right: 20px;
+      top: 65px;
+      right: 15px;
       background: var(--surface-color);
       padding: 15px;
-      border-radius: 8px;
+      border-radius: 12px;
       border: 1px solid rgba(255,255,255,0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
       z-index: 50;
-      width: 220px;
+      width: 200px;
       display: none;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
     .debug-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 11px;
+      font-size: 10px;
       letter-spacing: 1px;
       color: var(--text-muted);
+      margin-bottom: 10px;
     }
 
-    /* Toggle Switch */
-    .switch { position: relative; width: 40px; height: 22px; }
+    .switch { position: relative; width: 34px; height: 18px; }
     .switch input { display: none; }
-    .slider-toggle { position: absolute; inset: 0; background: rgba(0,0,0,0.5); border-radius: 22px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); }
-    .slider-toggle:before { content: ''; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; background: var(--text-muted); border-radius: 50%; transition: 0.3s; }
+    .slider-toggle { position: absolute; inset: 0; background: rgba(0,0,0,0.5); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+    .slider-toggle:before { content: ''; position: absolute; width: 12px; height: 12px; left: 2px; top: 2px; background: #555; border-radius: 50%; transition: 0.3s; }
     input:checked + .slider-toggle { background: rgba(255,170,0,0.2); border-color: var(--warning); }
-    input:checked + .slider-toggle:before { transform: translateX(18px); background: var(--warning); }
+    input:checked + .slider-toggle:before { transform: translateX(16px); background: var(--warning); }
 
-    /* Range Slider */
-    #manual-slider { -webkit-appearance: none; width: 100%; height: 4px; background: rgba(0,0,0,0.5); border-radius: 2px; outline: none; }
-    #manual-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--warning); cursor: pointer; }
-    #debug-speed-label { font-size: 11px; color: var(--warning); text-align: center; }
+    #manual-slider { -webkit-appearance: none; width: 100%; height: 4px; background: rgba(0,0,0,0.5); border-radius: 2px; }
+    #manual-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--warning); }
 
-    /* Secret hit area for Debug */
     #secret-trigger {
       position: absolute;
-      top: 0; left: 0; width: 100px; height: 60px; z-index: 10;
+      top: 0; left: 0; width: 80px; height: 60px; z-index: 30;
     }
   </style>
 </head>
@@ -269,7 +253,7 @@
   <div id="secret-trigger"></div>
 
   <header>
-    <div class="app-title">AVAS Core System</div>
+    <div class="app-title">AVAS Core</div>
     <div class="status-indicator">
       <div class="status-dot" id="gps-dot"></div>
       <span id="gps-text">GPS: WAIT</span>
@@ -297,12 +281,12 @@
 
   <div id="debug-panel">
     <div class="debug-row">
-      <span>SIMULATE GPS</span>
+      <span>SIMULATE</span>
       <label class="switch"><input type="checkbox" id="debug-check"><span class="slider-toggle"></span></label>
     </div>
-    <div id="slider-container" style="display: none; flex-direction: column; gap: 10px;">
+    <div id="slider-container" style="display: none; flex-direction: column; gap: 8px;">
       <input type="range" id="manual-slider" min="0" max="80" value="0" step="1">
-      <div id="debug-speed-label">0 MPH</div>
+      <div id="debug-speed-label" style="font-size: 10px; color: var(--warning); text-align: center;">0 MPH</div>
     </div>
   </div>
 
@@ -311,15 +295,12 @@
     <div class="sound-list">
       <div class="sound-opt active" data-type="tesla">1. TESLA (GHOST WHINE)</div>
       <div class="sound-opt locked">2. SLOT 2 (LOCKED)</div>
-      <div class="sound-opt locked">3. SLOT 3 (LOCKED)</div>
-      <div class="sound-opt locked">4. SLOT 4 (LOCKED)</div>
-      <div class="sound-opt locked">5. SLOT 5 (LOCKED)</div>
+      <div class="sound-opt locked">3. SLOT 4 (LOCKED)</div>
+      <button id="close-modal">CLOSE</button>
     </div>
-    <button id="close-modal">CLOSE</button>
   </div>
 
   <script>
-    // UI Elements
     const speedEl = document.getElementById('speed');
     const statusText = document.getElementById('status-text');
     const gpsDot = document.getElementById('gps-dot');
@@ -330,8 +311,6 @@
     const menuBtn = document.getElementById('menu-btn');
     const modal = document.getElementById('modal');
     const closeModal = document.getElementById('close-modal');
-    
-    // Debug Elements
     const secretTrigger = document.getElementById('secret-trigger');
     const debugPanel = document.getElementById('debug-panel');
     const debugCheck = document.getElementById('debug-check');
@@ -339,29 +318,22 @@
     const manualSlider = document.getElementById('manual-slider');
     const debugSpeedLabel = document.getElementById('debug-speed-label');
 
-    // Audio Context
     let audioCtx, osc1, osc2, gainNode, filter, compressor;
     let audioEnabled = false;
     let gpsWatchId = null;
 
-    // ── AUDIO ENGINE ──
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      
-      osc1 = audioCtx.createOscillator(); // Low Ethereal Thrum
-      osc2 = audioCtx.createOscillator(); // High Tech Whine
+      osc1 = audioCtx.createOscillator();
+      osc2 = audioCtx.createOscillator();
       gainNode = audioCtx.createGain();
       filter = audioCtx.createBiquadFilter();
       compressor = audioCtx.createDynamicsCompressor();
 
-      // "Ghost" sound characteristics (pure sines blend beautifully)
       osc1.type = 'sine'; 
       osc2.type = 'sine'; 
-      
-      // Filter to keep it from getting too piercing at absolute top speeds
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(3000, audioCtx.currentTime);
-
       gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
       
       osc1.connect(filter);
@@ -374,11 +346,9 @@
       osc2.start();
     }
 
-    // Toggle Audio
     audioBtn.addEventListener('click', () => {
       if (!audioCtx) initAudio();
       audioEnabled = !audioEnabled;
-      
       if (audioEnabled) {
         audioCtx.resume();
         audioBtn.classList.add('active-toggle');
@@ -394,49 +364,25 @@
       }
     });
 
-    // ── CORE LOGIC ──
     function updateSystem(mph) {
-      const displaySpeed = Math.max(0, Math.round(mph));
-      speedEl.textContent = displaySpeed;
-
-      // Update Sound Pitch & Vol
+      speedEl.textContent = Math.max(0, Math.round(mph));
       if (audioEnabled && audioCtx) {
-        // OSC 1: Deep base thrum. Starts at 80Hz, climbs slowly.
-        const baseFreq = 80 + (mph * 2.5);
-        
-        // OSC 2: The Whine. Starts at 250Hz. Climbs AGGRESSIVELY so it screams by 40mph.
-        // Pitch multiplier is * 18. At 40mph = 970Hz. At 80mph = 1690Hz.
-        const whineFreq = 250 + (mph * 18);
-
+        // High-pitched ramp: 40mph is the "climax" of the pitch
+        const baseFreq = 80 + (mph * 3);
+        const whineFreq = 250 + (mph * 20); 
         osc1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.1);
         osc2.frequency.setTargetAtTime(whineFreq, audioCtx.currentTime, 0.1);
-
-        // Volume logic. Ramps up from 0 to max quickly, then holds steady.
-        const vol = mph > 0.5 ? Math.min(0.4, 0.1 + (mph / 50)) : 0;
+        const vol = mph > 0.5 ? Math.min(0.4, 0.1 + (mph / 45)) : 0;
         gainNode.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.1);
       }
-
-      // Dynamic Colors based on speed
-      if (mph < 20) {
-        speedEl.style.color = 'var(--accent-cyan)';
-        speedEl.style.textShadow = '0 0 40px rgba(102, 252, 241, 0.4)';
-      } else if (mph < 40) {
-        speedEl.style.color = 'var(--warning)';
-        speedEl.style.textShadow = '0 0 40px rgba(255, 170, 0, 0.4)';
-      } else {
-        speedEl.style.color = 'var(--danger)';
-        speedEl.style.textShadow = '0 0 40px rgba(255, 68, 0, 0.4)';
-      }
+      if (mph < 20) speedEl.style.color = 'var(--accent-cyan)';
+      else if (mph < 40) speedEl.style.color = 'var(--warning)';
+      else speedEl.style.color = 'var(--danger)';
     }
 
-    // ── GPS LOGIC ──
     function startGPS() {
-      if (!navigator.geolocation) {
-        statusText.textContent = "GPS HARDWARE NOT FOUND";
-        return;
-      }
+      if (!navigator.geolocation) return;
       if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
-
       gpsWatchId = navigator.geolocation.watchPosition(
         (pos) => {
           if (!debugCheck.checked) {
@@ -446,22 +392,14 @@
             updateSystem(s !== null && s > 0 ? s * 2.237 : 0);
           }
         },
-        (err) => {
-          if (!debugCheck.checked) {
-            gpsDot.classList.remove('active');
-            gpsText.textContent = "GPS: FAIL";
-            statusText.textContent = "CHECK LOCATION PERMISSIONS";
-          }
-        },
+        null,
         { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
       );
     }
 
-    // ── UI INTERACTIONS ──
     menuBtn.addEventListener('click', () => modal.style.display = 'flex');
     closeModal.addEventListener('click', () => modal.style.display = 'none');
 
-    // Secret Debug Menu Toggle (Tap Top Left Corner)
     let debugOpen = false;
     secretTrigger.addEventListener('click', () => {
       debugOpen = !debugOpen;
@@ -469,21 +407,8 @@
     });
 
     debugCheck.addEventListener('change', function() {
-      if (this.checked) {
-        sliderContainer.style.display = 'flex';
-        gpsDot.classList.remove('active');
-        gpsDot.style.backgroundColor = 'var(--warning)';
-        gpsDot.style.boxShadow = '0 0 8px var(--warning)';
-        gpsText.textContent = "GPS: SIM";
-        statusText.textContent = "DEBUG MODE ACTIVE";
-        updateSystem(parseFloat(manualSlider.value));
-      } else {
-        sliderContainer.style.display = 'none';
-        gpsDot.style.backgroundColor = '';
-        gpsDot.style.boxShadow = '';
-        statusText.textContent = "ACQUIRING SIGNAL...";
-        startGPS();
-      }
+      sliderContainer.style.display = this.checked ? 'flex' : 'none';
+      if (!this.checked) startGPS();
     });
 
     manualSlider.addEventListener('input', function() {
@@ -492,11 +417,11 @@
       updateSystem(val);
     });
 
-    // Boot
     startGPS();
   </script>
 </body>
 </html>
+
 
 
 
