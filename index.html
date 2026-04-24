@@ -2,155 +2,368 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Speed AVAS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>E-Moto AVAS System</title>
   <style>
+    /* ── BASE & TYPOGRAPHY ── */
+    :root {
+      --bg-color: #0b0c10;
+      --surface-color: #1f2833;
+      --accent-cyan: #66fcf1;
+      --accent-teal: #45a29e;
+      --text-main: #c5c6c7;
+      --text-muted: #7a7a7a;
+      --warning: #ffaa00;
+      --danger: #ff4400;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      background: #000;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── HEADER ── */
+    header {
+      width: 100%;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .app-title {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.05);
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--danger);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--danger);
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    .status-dot.active {
+      background-color: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan);
+    }
+
+    /* ── MAIN DASHBOARD ── */
+    main {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      font-family: 'Courier New', monospace;
-      overflow: hidden;
+      position: relative;
+    }
+
+    .speed-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
     #speed {
-      font-size: 120px;
-      font-weight: bold;
-      color: #00ffcc;
-      line-height: 1;
-      text-shadow: 0 0 30px #00ffcc88;
-      transition: color 0.3s;
+      font-family: 'Courier New', monospace;
+      font-size: 160px;
+      font-weight: 900;
+      line-height: 0.8;
+      color: var(--accent-cyan);
+      text-shadow: 0 0 40px rgba(102, 252, 241, 0.4);
+      transition: color 0.3s, text-shadow 0.3s;
     }
 
-    #unit { font-size: 28px; color: #444; letter-spacing: 8px; margin-top: 8px; }
-    #status { font-size: 13px; color: #333; margin-top: 20px; letter-spacing: 2px; }
+    #unit {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: 10px;
+      color: var(--accent-teal);
+      margin-top: 15px;
+      margin-right: -10px; /* Offset for tracking */
+    }
 
-    .controls { display: flex; gap: 10px; margin-top: 20px; }
-
-    button {
-      padding: 12px 18px;
-      background: #111;
-      border: 1px solid #444;
-      color: #00ffcc;
-      font-family: 'Courier New', monospace;
-      cursor: pointer;
-      letter-spacing: 1px;
-      border-radius: 4px;
+    #status-text {
+      position: absolute;
+      bottom: 40px;
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: 2px;
       text-transform: uppercase;
     }
 
-    #audio-btn.active { background: #00ffcc33; border-color: #00ffcc; }
+    /* ── BOTTOM CONTROLS ── */
+    .controls-bar {
+      width: 100%;
+      padding: 20px;
+      display: flex;
+      gap: 15px;
+      background: var(--surface-color);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
 
+    button {
+      flex: 1;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    button.active-toggle {
+      background: rgba(102, 252, 241, 0.1);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    .btn-icon { font-size: 18px; }
+
+    /* ── MODAL ── */
     #modal {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.95);
+      background: rgba(11, 12, 16, 0.95);
+      backdrop-filter: blur(5px);
       z-index: 100;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 15px;
+      padding: 20px;
+    }
+
+    .modal-title {
+      color: var(--text-main);
+      font-size: 16px;
+      letter-spacing: 4px;
+      margin-bottom: 30px;
+    }
+
+    .sound-list {
+      width: 100%;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
     .sound-opt {
-      width: 250px;
-      padding: 15px;
-      border: 1px solid #333;
+      padding: 16px;
+      background: var(--surface-color);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
       text-align: center;
-      color: #888;
+      color: var(--text-muted);
+      font-size: 13px;
+      letter-spacing: 2px;
       cursor: pointer;
+      transition: 0.2s;
     }
 
     .sound-opt.active {
-      border-color: #00ffcc;
-      color: #00ffcc;
-      background: #00ffcc11;
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      background: rgba(102, 252, 241, 0.05);
+      box-shadow: 0 0 15px rgba(102, 252, 241, 0.1);
     }
 
-    #debug-toggle { margin-top: 40px; display: flex; align-items: center; gap: 12px; }
-    .switch { position: relative; width: 48px; height: 26px; }
+    .sound-opt.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    #close-modal {
+      margin-top: 30px;
+      max-width: 320px;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* ── DEBUG PANEL ── */
+    #debug-panel {
+      position: absolute;
+      top: 70px;
+      right: 20px;
+      background: var(--surface-color);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      z-index: 50;
+      width: 220px;
+      display: none;
+    }
+
+    .debug-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+    }
+
+    /* Toggle Switch */
+    .switch { position: relative; width: 40px; height: 22px; }
     .switch input { display: none; }
-    .slider-toggle { position: absolute; inset: 0; background: #222; border-radius: 26px; cursor: pointer; }
-    .slider-toggle:before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #444; border-radius: 50%; transition: 0.3s; }
-    input:checked + .slider-toggle { background: #ff440033; }
-    input:checked + .slider-toggle:before { transform: translateX(22px); background: #ff4400; }
-    #debug-panel { display: none; flex-direction: column; align-items: center; gap: 12px; margin-top: 24px; width: 280px; }
-    #manual-slider { -webkit-appearance: none; width: 100%; height: 6px; background: #222; outline: none; }
-    #manual-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #ff4400; cursor: pointer; }
-    #debug-speed-label { font-size: 13px; color: #ff4400; }
+    .slider-toggle { position: absolute; inset: 0; background: rgba(0,0,0,0.5); border-radius: 22px; cursor: pointer; border: 1px solid rgba(255,255,255,0.1); }
+    .slider-toggle:before { content: ''; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; background: var(--text-muted); border-radius: 50%; transition: 0.3s; }
+    input:checked + .slider-toggle { background: rgba(255,170,0,0.2); border-color: var(--warning); }
+    input:checked + .slider-toggle:before { transform: translateX(18px); background: var(--warning); }
+
+    /* Range Slider */
+    #manual-slider { -webkit-appearance: none; width: 100%; height: 4px; background: rgba(0,0,0,0.5); border-radius: 2px; outline: none; }
+    #manual-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--warning); cursor: pointer; }
+    #debug-speed-label { font-size: 11px; color: var(--warning); text-align: center; }
+
+    /* Secret hit area for Debug */
+    #secret-trigger {
+      position: absolute;
+      top: 0; left: 0; width: 100px; height: 60px; z-index: 10;
+    }
   </style>
 </head>
 <body>
 
-  <div id="speed">--</div>
-  <div id="unit">MPH</div>
-  <div id="status">WAITING FOR GPS...</div>
+  <div id="secret-trigger"></div>
 
-  <div class="controls">
-    <button id="audio-btn">AUDIO: OFF</button>
-    <button id="menu-btn">SOUNDS</button>
-  </div>
+  <header>
+    <div class="app-title">AVAS Core System</div>
+    <div class="status-indicator">
+      <div class="status-dot" id="gps-dot"></div>
+      <span id="gps-text">GPS: WAIT</span>
+    </div>
+  </header>
 
-  <div id="modal">
-    <h2 style="color: #444; margin-bottom: 20px;">SELECT PROFILE</h2>
-    <div class="sound-opt active" data-type="sawtooth">1. AGGRESSIVE (SAW)</div>
-    <div class="sound-opt" data-type="tesla">2. TESLA WHINE (LAYERED)</div>
-    <div class="sound-opt" data-type="square">3. SLOT 3 (LOCKED)</div>
-    <div class="sound-opt" data-type="triangle">4. SLOT 4 (LOCKED)</div>
-    <div class="sound-opt" data-type="custom">5. SLOT 5 (LOCKED)</div>
-    <button id="close-modal" style="margin-top: 30px; border-color: #ff4400; color: #ff4400;">CLOSE</button>
-  </div>
+  <main>
+    <div class="speed-container">
+      <div id="speed">0</div>
+      <div id="unit">MPH</div>
+    </div>
+    <div id="status-text">ACQUIRING SIGNAL...</div>
+  </main>
 
-  <div id="debug-toggle">
-    <span>DEBUG</span>
-    <label class="switch"><input type="checkbox" id="debug-check"><span class="slider-toggle"></span></label>
+  <div class="controls-bar">
+    <button id="audio-btn">
+      <span class="btn-icon">🔈</span>
+      <span>AVAS OFF</span>
+    </button>
+    <button id="menu-btn">
+      <span class="btn-icon">⚙️</span>
+      <span>PROFILE</span>
+    </button>
   </div>
 
   <div id="debug-panel">
-    <input type="range" id="manual-slider" min="0" max="80" value="0" step="1">
-    <div id="debug-speed-label">0 MPH (SIMULATED)</div>
+    <div class="debug-row">
+      <span>SIMULATE GPS</span>
+      <label class="switch"><input type="checkbox" id="debug-check"><span class="slider-toggle"></span></label>
+    </div>
+    <div id="slider-container" style="display: none; flex-direction: column; gap: 10px;">
+      <input type="range" id="manual-slider" min="0" max="80" value="0" step="1">
+      <div id="debug-speed-label">0 MPH</div>
+    </div>
+  </div>
+
+  <div id="modal">
+    <div class="modal-title">ACOUSTIC PROFILES</div>
+    <div class="sound-list">
+      <div class="sound-opt active" data-type="tesla">1. TESLA (GHOST WHINE)</div>
+      <div class="sound-opt locked">2. SLOT 2 (LOCKED)</div>
+      <div class="sound-opt locked">3. SLOT 3 (LOCKED)</div>
+      <div class="sound-opt locked">4. SLOT 4 (LOCKED)</div>
+      <div class="sound-opt locked">5. SLOT 5 (LOCKED)</div>
+    </div>
+    <button id="close-modal">CLOSE</button>
   </div>
 
   <script>
+    // UI Elements
     const speedEl = document.getElementById('speed');
-    const statusEl = document.getElementById('status');
+    const statusText = document.getElementById('status-text');
+    const gpsDot = document.getElementById('gps-dot');
+    const gpsText = document.getElementById('gps-text');
     const audioBtn = document.getElementById('audio-btn');
+    const audioIcon = audioBtn.querySelector('.btn-icon');
+    const audioLabel = audioBtn.querySelector('span:nth-child(2)');
     const menuBtn = document.getElementById('menu-btn');
     const modal = document.getElementById('modal');
     const closeModal = document.getElementById('close-modal');
-    const soundOpts = document.querySelectorAll('.sound-opt');
-    const debugCheck = document.getElementById('debug-check');
+    
+    // Debug Elements
+    const secretTrigger = document.getElementById('secret-trigger');
     const debugPanel = document.getElementById('debug-panel');
+    const debugCheck = document.getElementById('debug-check');
+    const sliderContainer = document.getElementById('slider-container');
     const manualSlider = document.getElementById('manual-slider');
+    const debugSpeedLabel = document.getElementById('debug-speed-label');
 
+    // Audio Context
     let audioCtx, osc1, osc2, gainNode, filter, compressor;
     let audioEnabled = false;
-    let currentProfile = 'sawtooth';
+    let gpsWatchId = null;
 
+    // ── AUDIO ENGINE ──
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       
-      osc1 = audioCtx.createOscillator();
-      osc2 = audioCtx.createOscillator();
+      osc1 = audioCtx.createOscillator(); // Low Ethereal Thrum
+      osc2 = audioCtx.createOscillator(); // High Tech Whine
       gainNode = audioCtx.createGain();
       filter = audioCtx.createBiquadFilter();
       compressor = audioCtx.createDynamicsCompressor();
 
-      osc1.type = 'sawtooth'; 
+      // "Ghost" sound characteristics (pure sines blend beautifully)
+      osc1.type = 'sine'; 
       osc2.type = 'sine'; 
       
+      // Filter to keep it from getting too piercing at absolute top speeds
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(400, audioCtx.currentTime);
+      filter.frequency.setValueAtTime(3000, audioCtx.currentTime);
 
       gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
       
-      // Connection Chain
       osc1.connect(filter);
       osc2.connect(filter);
       filter.connect(compressor);
@@ -161,87 +374,129 @@
       osc2.start();
     }
 
+    // Toggle Audio
     audioBtn.addEventListener('click', () => {
       if (!audioCtx) initAudio();
       audioEnabled = !audioEnabled;
+      
       if (audioEnabled) {
-        audioBtn.textContent = "AUDIO: ON";
-        audioBtn.classList.add('active');
         audioCtx.resume();
+        audioBtn.classList.add('active-toggle');
+        audioIcon.textContent = '🔊';
+        audioLabel.textContent = 'AVAS ON';
+        statusText.textContent = "SYSTEM ARMED";
       } else {
-        audioBtn.textContent = "AUDIO: OFF";
-        audioBtn.classList.remove('active');
+        audioBtn.classList.remove('active-toggle');
+        audioIcon.textContent = '🔈';
+        audioLabel.textContent = 'AVAS OFF';
         gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+        statusText.textContent = "SYSTEM MUTED";
       }
     });
 
-    menuBtn.addEventListener('click', () => modal.style.display = 'flex');
-    closeModal.addEventListener('click', () => modal.style.display = 'none');
+    // ── CORE LOGIC ──
+    function updateSystem(mph) {
+      const displaySpeed = Math.max(0, Math.round(mph));
+      speedEl.textContent = displaySpeed;
 
-    soundOpts.forEach(opt => {
-      opt.addEventListener('click', function() {
-        soundOpts.forEach(s => s.classList.remove('active'));
-        this.classList.add('active');
-        currentProfile = this.dataset.type;
-        
-        // Immediate swap of wave types based on profile
-        if (currentProfile === 'sawtooth') {
-          osc1.type = 'sawtooth';
-          osc2.type = 'sine'; // Support layer
-        } else if (currentProfile === 'tesla') {
-          osc1.type = 'triangle'; // Low thrum
-          osc2.type = 'sine';     // High whistle
-        }
-      });
-    });
-
-    function setSpeed(mph) {
-      speedEl.textContent = Math.round(mph);
+      // Update Sound Pitch & Vol
       if (audioEnabled && audioCtx) {
+        // OSC 1: Deep base thrum. Starts at 80Hz, climbs slowly.
+        const baseFreq = 80 + (mph * 2.5);
         
-        if (currentProfile === 'sawtooth') {
-          osc1.frequency.setTargetAtTime(60 + (mph * 5), audioCtx.currentTime, 0.1);
-          osc2.frequency.setTargetAtTime(120 + (mph * 5), audioCtx.currentTime, 0.1);
-          filter.frequency.setTargetAtTime(400 + (mph * 40), audioCtx.currentTime, 0.1);
-        } 
-        else if (currentProfile === 'tesla') {
-          // Deep thrum stays lower
-          osc1.frequency.setTargetAtTime(50 + (mph * 2), audioCtx.currentTime, 0.1);
-          // Whine climbs much higher
-          osc2.frequency.setTargetAtTime(150 + (mph * 12), audioCtx.currentTime, 0.1);
-          // Keep filter mostly open for that clean electric sound
-          filter.frequency.setTargetAtTime(2000 + (mph * 50), audioCtx.currentTime, 0.1);
-        }
+        // OSC 2: The Whine. Starts at 250Hz. Climbs AGGRESSIVELY so it screams by 40mph.
+        // Pitch multiplier is * 18. At 40mph = 970Hz. At 80mph = 1690Hz.
+        const whineFreq = 250 + (mph * 18);
 
-        const vol = mph > 0 ? Math.min(0.4, 0.05 + (mph / 80)) : 0;
+        osc1.frequency.setTargetAtTime(baseFreq, audioCtx.currentTime, 0.1);
+        osc2.frequency.setTargetAtTime(whineFreq, audioCtx.currentTime, 0.1);
+
+        // Volume logic. Ramps up from 0 to max quickly, then holds steady.
+        const vol = mph > 0.5 ? Math.min(0.4, 0.1 + (mph / 50)) : 0;
         gainNode.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.1);
       }
 
-      if (mph < 20) speedEl.style.color = '#00ffcc';
-      else if (mph < 40) speedEl.style.color = '#ffaa00';
-      else speedEl.style.color = '#ff4400';
-    }
-
-    function startGPS() {
-      if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(pos => {
-          if (!debugCheck.checked) setSpeed((pos.coords.speed || 0) * 2.237);
-        }, null, { enableHighAccuracy: true });
+      // Dynamic Colors based on speed
+      if (mph < 20) {
+        speedEl.style.color = 'var(--accent-cyan)';
+        speedEl.style.textShadow = '0 0 40px rgba(102, 252, 241, 0.4)';
+      } else if (mph < 40) {
+        speedEl.style.color = 'var(--warning)';
+        speedEl.style.textShadow = '0 0 40px rgba(255, 170, 0, 0.4)';
+      } else {
+        speedEl.style.color = 'var(--danger)';
+        speedEl.style.textShadow = '0 0 40px rgba(255, 68, 0, 0.4)';
       }
     }
 
+    // ── GPS LOGIC ──
+    function startGPS() {
+      if (!navigator.geolocation) {
+        statusText.textContent = "GPS HARDWARE NOT FOUND";
+        return;
+      }
+      if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
+
+      gpsWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          if (!debugCheck.checked) {
+            gpsDot.classList.add('active');
+            gpsText.textContent = "GPS: LOCK";
+            const s = pos.coords.speed;
+            updateSystem(s !== null && s > 0 ? s * 2.237 : 0);
+          }
+        },
+        (err) => {
+          if (!debugCheck.checked) {
+            gpsDot.classList.remove('active');
+            gpsText.textContent = "GPS: FAIL";
+            statusText.textContent = "CHECK LOCATION PERMISSIONS";
+          }
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+      );
+    }
+
+    // ── UI INTERACTIONS ──
+    menuBtn.addEventListener('click', () => modal.style.display = 'flex');
+    closeModal.addEventListener('click', () => modal.style.display = 'none');
+
+    // Secret Debug Menu Toggle (Tap Top Left Corner)
+    let debugOpen = false;
+    secretTrigger.addEventListener('click', () => {
+      debugOpen = !debugOpen;
+      debugPanel.style.display = debugOpen ? 'flex' : 'none';
+    });
+
     debugCheck.addEventListener('change', function() {
-      debugPanel.style.display = this.checked ? 'flex' : 'none';
-      if (!this.checked) startGPS();
+      if (this.checked) {
+        sliderContainer.style.display = 'flex';
+        gpsDot.classList.remove('active');
+        gpsDot.style.backgroundColor = 'var(--warning)';
+        gpsDot.style.boxShadow = '0 0 8px var(--warning)';
+        gpsText.textContent = "GPS: SIM";
+        statusText.textContent = "DEBUG MODE ACTIVE";
+        updateSystem(parseFloat(manualSlider.value));
+      } else {
+        sliderContainer.style.display = 'none';
+        gpsDot.style.backgroundColor = '';
+        gpsDot.style.boxShadow = '';
+        statusText.textContent = "ACQUIRING SIGNAL...";
+        startGPS();
+      }
     });
 
     manualSlider.addEventListener('input', function() {
-      setSpeed(parseInt(this.value));
+      const val = parseFloat(this.value);
+      debugSpeedLabel.textContent = val + ' MPH';
+      updateSystem(val);
     });
 
+    // Boot
     startGPS();
   </script>
 </body>
 </html>
+
 
 
