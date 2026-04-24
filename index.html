@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>E-Moto AVAS System V1.15</title>
+  <title>E-Moto AVAS System V1.16</title>
   <style>
     :root {
-      --bg-color: #0b0c10;
+      --bg-color: #050608;
       --surface-color: #1f2833;
       --accent-cyan: #66fcf1;
       --accent-teal: #45a29e;
       --text-main: #c5c6c7;
-      --text-muted: #4a525a;
+      --text-muted: #3a424a;
     }
     
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -22,114 +22,93 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       display: flex; flex-direction: column; height: 100dvh; overflow: hidden; user-select: none;
       touch-action: none;
-      animation: fadeIn 0.8s ease-out;
     }
 
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    /* Ambient Background Visualizer */
+    #canvas-container {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 1; pointer-events: none; opacity: 0.4;
+      transition: opacity 0.5s ease;
+    }
+    .audio-active #canvas-container { opacity: 0.8; }
 
     header {
       width: 100%; padding: 16px 24px;
       display: flex; justify-content: space-between; align-items: center;
-      background: linear-gradient(180deg, rgba(31,40,51,0.8) 0%, rgba(11,12,16,0) 100%);
-      z-index: 20;
+      z-index: 20; background: linear-gradient(180deg, rgba(5,6,8,1) 0%, rgba(5,6,8,0) 100%);
     }
     
-    .app-title { font-size: 12px; font-weight: 700; letter-spacing: 4px; color: var(--text-muted); text-transform: uppercase; }
+    .app-title { font-size: 11px; font-weight: 800; letter-spacing: 5px; color: var(--text-muted); text-transform: uppercase; }
     
     .telemetry-bar {
-      width: 100%; background: rgba(255, 255, 255, 0.015);
-      padding: 8px 24px; display: flex; justify-content: space-between;
-      border-top: 1px solid rgba(255, 255, 255, 0.02);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-      font-size: 10px; font-family: 'Courier New', monospace; letter-spacing: 1.5px; color: var(--accent-teal);
+      width: 100%; padding: 8px 24px; display: flex; justify-content: space-between;
+      font-size: 9px; font-family: 'Courier New', monospace; letter-spacing: 2px; color: var(--accent-teal);
+      z-index: 20; border-bottom: 1px solid rgba(102, 252, 241, 0.05);
     }
     
-    .status-indicator { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 1px;}
-    .status-dot { width: 8px; height: 8px; background-color: #ff4400; border-radius: 50%; box-shadow: 0 0 8px rgba(255, 68, 0, 0.5); transition: all 0.3s; }
-    .status-dot.active { background-color: var(--accent-cyan); box-shadow: 0 0 12px var(--accent-cyan); animation: pulseDot 2s infinite alternate; }
-
-    @keyframes pulseDot { 0% { opacity: 0.6; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1.1); } }
+    .status-indicator { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; color: var(--text-muted); }
+    .status-dot { width: 6px; height: 6px; background-color: #440000; border-radius: 50%; transition: all 0.3s; }
+    .status-dot.active { background-color: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
 
     main { 
       flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; 
-      position: relative; width: 100%; padding: 20px; gap: 30px;
+      position: relative; width: 100%; z-index: 10;
     }
     
-    .speed-container { display: flex; flex-direction: column; align-items: center; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .speed-container { pointer-events: none; display: flex; flex-direction: column; align-items: center; }
     #speed { 
-      font-family: 'Courier New', monospace; font-size: clamp(120px, 35vh, 220px); font-weight: 900; 
+      font-family: 'Courier New', monospace; font-size: clamp(140px, 40vh, 260px); font-weight: 900; 
       line-height: 0.8; color: var(--accent-cyan); 
-      text-shadow: 0 0 40px rgba(102, 252, 241, 0.1); 
-      transition: color 0.3s, text-shadow 0.3s;
+      transition: text-shadow 0.3s ease;
     }
-    .audio-active #speed { text-shadow: 0 0 60px rgba(102, 252, 241, 0.4); }
-    #unit { font-size: 16px; font-weight: 700; letter-spacing: 10px; color: var(--accent-teal); margin-top: 20px; opacity: 0.8; }
+    .audio-active #speed { text-shadow: 0 0 50px rgba(102, 252, 241, 0.3); }
+    #unit { font-size: 14px; font-weight: 700; letter-spacing: 12px; color: var(--accent-teal); margin-top: 10px; }
     
-    /* New Waveform Box */
-    .waveform-box {
-      width: 100%; max-width: 320px; height: 80px;
-      background: rgba(31, 40, 51, 0.4);
-      border: 1px solid rgba(102, 252, 241, 0.15);
-      border-radius: 16px;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.3);
-      position: relative; overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.3s;
-    }
-    .waveform-box::before {
-      content: 'AUDIO telemetry'; position: absolute; top: 6px; left: 12px;
-      font-size: 7px; color: var(--accent-teal); opacity: 0.5; letter-spacing: 2px; font-family: monospace;
-    }
-    canvas { width: 100%; height: 100%; }
-
     #debug-label { 
-      position: absolute; bottom: 20px; font-size: 10px; color: #ff4400; 
-      letter-spacing: 2px; font-weight: bold; opacity: 0; transition: opacity 0.3s;
-      pointer-events: none;
+      position: absolute; bottom: 40px; font-size: 9px; color: #ff4400; 
+      letter-spacing: 3px; font-weight: 900; opacity: 0; transition: opacity 0.3s;
+      text-transform: uppercase;
     }
-    #debug-label.visible { opacity: 1; animation: flashText 1.5s infinite; }
-    @keyframes flashText { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.3; } }
+    #debug-label.visible { opacity: 0.7; }
 
-    .controls-bar { width: 100%; padding: 20px 24px 35px 24px; display: flex; justify-content: center; background: linear-gradient(0deg, rgba(11,12,16,1) 0%, rgba(31,40,51,0) 100%); z-index: 20; }
+    .controls-bar { width: 100%; padding: 20px 24px 40px 24px; display: flex; justify-content: center; z-index: 20; }
     button { 
-      width: 100%; max-width: 350px; padding: 18px; 
-      background: rgba(31, 40, 51, 0.6); backdrop-filter: blur(10px);
+      width: 100%; max-width: 320px; padding: 18px; 
+      background: rgba(31, 40, 51, 0.3); backdrop-filter: blur(5px);
       border: 1px solid rgba(255, 255, 255, 0.05); color: var(--text-main); 
-      font-size: 12px; font-weight: 700; letter-spacing: 3px; border-radius: 16px; 
-      text-transform: uppercase; transition: all 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      font-size: 11px; font-weight: 800; letter-spacing: 4px; border-radius: 100px; 
+      text-transform: uppercase; transition: all 0.3s;
     }
-    button:active { transform: scale(0.97); }
-    button.active-toggle { background: rgba(102, 252, 241, 0.08); border-color: rgba(102, 252, 241, 0.4); color: var(--accent-cyan); box-shadow: 0 0 20px rgba(102, 252, 241, 0.15); }
+    button.active-toggle { background: rgba(102, 252, 241, 0.1); border-color: var(--accent-cyan); color: var(--accent-cyan); }
     
-    #secret-trigger { position: absolute; top: 0; left: 0; width: 100px; height: 80px; z-index: 100; }
+    #secret-trigger { position: absolute; top: 0; left: 0; width: 80px; height: 80px; z-index: 100; }
 
-    /* LANDSCAPE (Dashboard Mode) */
     @media (orientation: landscape) {
-      main { flex-direction: row; justify-content: center; gap: 8vw; padding: 0 40px; }
-      .speed-container { align-items: flex-start; }
-      #speed { font-size: clamp(100px, 28vw, 240px); }
-      #unit { margin-top: 5px; }
-      .waveform-box { max-width: 250px; height: 120px; }
-      .controls-bar { padding: 15px 40px 25px 40px; }
-      button { max-width: 300px; padding: 14px; }
+      main { flex-direction: row; }
+      #speed { font-size: clamp(120px, 30vw, 280px); }
     }
   </style>
 </head>
 <body>
   <div id="secret-trigger"></div>
+  <div id="canvas-container"><canvas id="visualizer"></canvas></div>
+  
   <header>
-    <div class="app-title">AVAS Core V1.15</div>
-    <div class="status-indicator"><div class="status-dot" id="gps-dot"></div><span id="gps-text">GPS</span></div>
+    <div class="app-title">AVAS Core V1.16</div>
+    <div class="status-indicator"><div class="status-dot" id="gps-dot"></div><span id="gps-text">LINKED</span></div>
   </header>
-  <div class="telemetry-bar"><span id="acc-val">ACCURACY: --</span><span id="head-val">SIM MODE: OFF</span></div>
+  
+  <div class="telemetry-bar">
+    <span id="acc-val">SIGNAL: SEARCHING</span>
+    <span id="head-val">SIM: OFF</span>
+  </div>
   
   <main id="interaction-zone">
     <div class="speed-container"><div id="speed">0</div><div id="unit">MPH</div></div>
-    <div class="waveform-box"><canvas id="visualizer"></canvas></div>
-    <div id="debug-label">SIMULATION ACTIVE - SLIDE TO CONTROL</div>
+    <div id="debug-label">Simulation Bounds Active</div>
   </main>
   
-  <div class="controls-bar"><button id="audio-btn">Audio Off</button></div>
+  <div class="controls-bar"><button id="audio-btn">Ignition Off</button></div>
 
   <script>
     const speedEl = document.getElementById('speed');
@@ -147,31 +126,23 @@
     let vibratoLFO, vibratoGain;
     let audioEnabled = false;
     let isSimMode = false;
-    let animationId;
+    let currentSpeed = 0;
 
-    // Handle high-DPI canvas resizing for crisp lines
     function resizeCanvas() {
-      const rect = canvas.parentElement.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      canvasCtx.scale(dpr, dpr);
+      canvas.width = window.innerWidth * window.devicePixelRatio;
+      canvas.height = window.innerHeight * window.devicePixelRatio;
+      canvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
     }
     window.addEventListener('resize', resizeCanvas);
 
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      
       filter = audioCtx.createBiquadFilter();
       filter.type = "lowpass";
-      filter.frequency.value = 1000;
-      
       gainIdle = audioCtx.createGain(); 
       gainIdle.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-
-      // Initialize Analyser for Waveform
       analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 512;
+      analyser.fftSize = 1024;
 
       vibratoLFO = audioCtx.createOscillator();
       vibratoGain = audioCtx.createGain();
@@ -180,13 +151,12 @@
       vibratoLFO.connect(vibratoGain);
       vibratoLFO.start();
 
-      const rootFreq = 220.00; 
       const ratios = [1.0, 1.49, 1.88, 2.1]; 
       choir = ratios.map((ratio, index) => {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.value = (rootFreq * ratio) + (index * 0.5);
+        osc.frequency.value = 220 * ratio;
         g.gain.value = 0.12; 
         vibratoGain.connect(osc.frequency);
         osc.connect(g);
@@ -196,105 +166,84 @@
       });
       
       gainIdle.connect(filter);
-      filter.connect(analyser); // Route through analyser
+      filter.connect(analyser);
       analyser.connect(audioCtx.destination);
-      
       resizeCanvas();
       drawVisualizer();
     }
 
     function drawVisualizer() {
-      animationId = requestAnimationFrame(drawVisualizer);
-      
-      const width = canvas.width / (window.devicePixelRatio || 1);
-      const height = canvas.height / (window.devicePixelRatio || 1);
-      
-      canvasCtx.clearRect(0, 0, width, height);
+      requestAnimationFrame(drawVisualizer);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      canvasCtx.clearRect(0, 0, w, h);
 
-      if (!audioEnabled || !analyser) {
-        // Draw flatline when off
-        canvasCtx.beginPath();
-        canvasCtx.moveTo(0, height / 2);
-        canvasCtx.lineTo(width, height / 2);
-        canvasCtx.strokeStyle = 'rgba(69, 162, 158, 0.3)';
-        canvasCtx.lineWidth = 2;
-        canvasCtx.stroke();
-        return;
-      }
+      if (!audioEnabled || !analyser) return;
 
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
       analyser.getByteTimeDomainData(dataArray);
 
-      canvasCtx.lineWidth = 2.5;
-      canvasCtx.strokeStyle = '#66fcf1';
-      canvasCtx.shadowBlur = 10;
-      canvasCtx.shadowColor = '#66fcf1';
+      // Dynamic styling based on speed
+      const intensity = Math.min(currentSpeed / 80, 1);
+      canvasCtx.lineWidth = 1.5 + (intensity * 4);
+      canvasCtx.strokeStyle = `rgba(102, 252, 241, ${0.3 + (intensity * 0.7)})`;
       canvasCtx.beginPath();
 
-      const sliceWidth = width * 1.0 / bufferLength;
+      const sliceWidth = w / bufferLength;
       let x = 0;
 
       for (let i = 0; i < bufferLength; i++) {
         const v = dataArray[i] / 128.0;
-        const y = v * (height / 2);
+        // Wave height expands with speed
+        const y = (v * h / 2) + (Math.sin(i / 10) * intensity * 20);
 
         if (i === 0) canvasCtx.moveTo(x, y);
         else canvasCtx.lineTo(x, y);
-
         x += sliceWidth;
       }
-
-      canvasCtx.lineTo(width, height / 2);
       canvasCtx.stroke();
-      canvasCtx.shadowBlur = 0; // Reset shadow for next frame
     }
 
     audioBtn.addEventListener('click', () => {
       if (!audioCtx) initAudio();
       audioEnabled = !audioEnabled;
-      audioBtn.textContent = audioEnabled ? "Audio On" : "Audio Off";
+      audioBtn.textContent = audioEnabled ? "Ignition On" : "Ignition Off";
       audioBtn.classList.toggle('active-toggle', audioEnabled);
       document.body.classList.toggle('audio-active', audioEnabled);
-      
       if (audioEnabled) {
         audioCtx.resume();
-        updateSystem(parseFloat(speedEl.textContent) || 0);
+        updateSystem(currentSpeed);
       } else {
         gainIdle.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
       }
     });
 
     function updateSystem(mph, accuracy = null) {
+      currentSpeed = mph;
       const now = audioCtx ? audioCtx.currentTime : 0;
-      const ramp = 0.15; // Slightly slower ramp for visual smoothness
       speedEl.textContent = Math.max(0, Math.round(mph));
-      if (accuracy !== null) accVal.textContent = `ACCURACY: ${Math.round(accuracy)}m`;
+      if (accuracy !== null) accVal.textContent = `SIGNAL: ±${Math.round(accuracy)}M`;
       
       if (audioEnabled && audioCtx) {
         const cloudShift = 1 + (mph / 110); 
-        const rootFreq = 220.00;
-        const ratios = [1.0, 1.49, 1.88, 2.1];
         choir.forEach((osc, i) => {
-          osc.frequency.linearRampToValueAtTime(rootFreq * ratios[i] * cloudShift, now + ramp);
+          const base = [1.0, 1.49, 1.88, 2.1][i];
+          osc.frequency.linearRampToValueAtTime(220 * base * cloudShift, now + 0.15);
         });
-        vibratoLFO.frequency.linearRampToValueAtTime(1.8 + (mph / 9), now + ramp);
-        vibratoGain.gain.linearRampToValueAtTime(3 + (mph / 4), now + ramp);
-        const targetVol = 0.005 + (mph / 300); 
-        gainIdle.gain.linearRampToValueAtTime(targetVol, now + ramp);
-        filter.frequency.linearRampToValueAtTime(1000 + (mph * 45), now + ramp);
+        vibratoLFO.frequency.linearRampToValueAtTime(1.8 + (mph / 9), now + 0.15);
+        vibratoGain.gain.linearRampToValueAtTime(3 + (mph / 4), now + 0.15);
+        gainIdle.gain.linearRampToValueAtTime(0.005 + (mph / 300), now + 0.15);
+        filter.frequency.linearRampToValueAtTime(1000 + (mph * 45), now + 0.15);
       }
     }
 
     document.getElementById('secret-trigger').addEventListener('click', () => {
       isSimMode = !isSimMode;
-      simVal.textContent = isSimMode ? "SIM MODE: ON" : "SIM MODE: OFF";
+      simVal.textContent = isSimMode ? "SIM: ACTIVE" : "SIM: OFF";
       simVal.style.color = isSimMode ? "#66fcf1" : "#45a29e";
       debugLabel.classList.toggle('visible', isSimMode);
-      if (!isSimMode) {
-        updateSystem(0);
-        gpsDot.classList.remove('active');
-      }
+      if (!isSimMode) updateSystem(0);
     });
 
     const handleTouch = (e) => {
@@ -302,14 +251,20 @@
       const touch = e.touches ? e.touches[0] : e;
       const rect = interactionZone.getBoundingClientRect();
       const x = touch.clientX - rect.left;
-      const percent = Math.min(Math.max(x / rect.width, 0), 1);
+      
+      // BOUNDS LOGIC: 10% deadzone on each side
+      const margin = rect.width * 0.1;
+      const usableWidth = rect.width - (margin * 2);
+      const relativeX = Math.min(Math.max(x - margin, 0), usableWidth);
+      
+      const percent = relativeX / usableWidth;
       updateSystem(percent * 85);
     };
 
     interactionZone.addEventListener('touchstart', handleTouch);
     interactionZone.addEventListener('touchmove', handleTouch);
-    interactionZone.addEventListener('mousedown', () => { window.addEventListener('mousemove', handleTouch); });
-    window.addEventListener('mouseup', () => { window.removeEventListener('mousemove', handleTouch); });
+    interactionZone.addEventListener('mousedown', () => window.addEventListener('mousemove', handleTouch));
+    window.addEventListener('mouseup', () => window.removeEventListener('mousemove', handleTouch));
 
     function startGPS() {
       navigator.geolocation.watchPosition((pos) => {
@@ -320,12 +275,12 @@
       }, null, { enableHighAccuracy: true, maximumAge: 0 });
     }
 
-    // Init canvas size
     resizeCanvas();
     startGPS();
   </script>
 </body>
 </html>
+
 
 
 
