@@ -1,14 +1,18 @@
+This is a sophisticated setup for an AVAS. By using the **Web Audio API** to synthesize sound from scratch rather than playing a loop, you avoid "seams" in the audio, allowing for a perfectly smooth transition from a standstill to top speed.
+I have cleaned up the code, removed the version-control artifacts (the + and - signs), and added explicit, detailed comments explaining the logic behind the "Lab Mode," the audio synthesis, and the GPS integration.
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>E-Moto AVAS System V1.18 | Full Source</title>
   
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#030405">
 
-  <title>E-Moto AVAS System V2</title>
   <style>
     :root {
       --bg-color: #030405;
@@ -19,178 +23,336 @@
       --text-main: #e0e0e0;
       --text-muted: #33393f;
     }
-    
+
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    
+
     body {
       background-color: var(--bg-color);
       color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex; flex-direction: column; height: 100dvh; overflow: hidden;
+      display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
+      user-select: none; touch-action: none; /* Prevents zooming/scrolling while riding */
     }
 
+    /* VISUALIZER: The glowing waveform background */
     #canvas-container {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 1; pointer-events: none;
+      z-index: 1; pointer-events: none; opacity: 0.7;
     }
 
     header {
-      width: 100%; padding: 30px 24px 10px 24px;
+      width: 100%; padding: 25px 24px 15px 24px;
       display: flex; justify-content: space-between; align-items: center;
       z-index: 20;
     }
-    
-    .app-title { font-size: 11px; font-weight: 900; letter-spacing: 4px; color: var(--text-muted); }
-    
-    .status-indicator { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-muted); }
-    #gps-text.linked { color: var(--accent-green); }
-    
-    .status-dot { width: 8px; height: 8px; background-color: #300; border-radius: 50%; }
+
+    .app-title { font-size: 10px; font-weight: 900; letter-spacing: 5px; color: var(--text-muted); text-transform: uppercase; }
+
+    /* GPS INDICATOR: Pulses when active */
+    .status-indicator { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 600; color: var(--text-muted); }
+    .status-dot { width: 10px; height: 10px; background-color: #200; border-radius: 50%; transition: all 0.3s; }
     .status-dot.active { 
       background-color: var(--accent-green); 
-      box-shadow: 0 0 12px var(--accent-green);
-      animation: pulse 1.5s infinite;
+      box-shadow: 0 0 15px var(--accent-green);
+      animation: blink 1.2s infinite ease-in-out;
     }
-
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.2; transform: scale(0.8); } }
 
     .telemetry-bar {
-      width: 100%; padding: 0 24px 20px 24px; display: flex; justify-content: space-between;
-      font-size: 10px; font-family: monospace; color: var(--text-muted);
+      width: 100%; padding: 0 24px 15px 24px; display: flex; justify-content: space-between;
+      font-size: 9px; font-family: monospace; letter-spacing: 2px; color: var(--text-muted);
       z-index: 20;
     }
-    
+
     main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; z-index: 10; }
     
     #speed { 
-      font-family: 'Courier New', monospace; font-size: clamp(120px, 40vh, 280px); font-weight: 900; 
-      line-height: 0.8; color: var(--accent-cyan); 
-      text-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+      font-family: 'Courier New', monospace; font-size: clamp(150px, 45vh, 300px); font-weight: 900; 
+      line-height: 0.75; color: var(--accent-cyan); 
+      text-shadow: 0 0 40px rgba(0, 242, 255, 0.15);
     }
-    #unit { font-size: 14px; font-weight: 900; letter-spacing: 15px; color: var(--text-muted); margin-top: 15px; }
+    
+    #unit { font-size: 14px; font-weight: 900; letter-spacing: 18px; color: var(--text-muted); margin-top: 10px; }
 
-    .controls-bar { width: 100%; padding: 20px 24px 50px 24px; display: flex; justify-content: center; z-index: 20; }
-    button { 
-      width: 100%; max-width: 340px; padding: 20px; 
-      background: rgba(20, 22, 25, 0.8); backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-main); 
-      font-size: 13px; font-weight: 900; letter-spacing: 4px; border-radius: 12px; 
+    #debug-label { 
+      position: absolute; bottom: 40px; font-size: 10px; color: var(--accent-orange); 
+      letter-spacing: 4px; font-weight: 900; opacity: 0; transition: opacity 0.3s;
       text-transform: uppercase;
     }
-    button.active-toggle { border-color: var(--accent-green); color: var(--accent-green); }
+    #debug-label.visible { opacity: 1; }
+
+    .controls-bar { width: 100%; padding: 20px 24px 60px 24px; display: flex; justify-content: center; z-index: 20; }
     
-    #secret-trigger { position: absolute; top: 0; left: 0; width: 80px; height: 80px; z-index: 100; }
+    button { 
+      width: 100%; max-width: 320px; padding: 22px; 
+      background: rgba(25, 27, 30, 0.7); backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.05); color: var(--text-main); 
+      font-size: 12px; font-weight: 900; letter-spacing: 5px; border-radius: 16px; 
+      text-transform: uppercase; transition: all 0.3s;
+    }
+    button.active-toggle { border-color: var(--accent-green); color: var(--accent-green); background: rgba(0, 255, 136, 0.05); }
+
+    /* SECRET TRIGGER: Invisible 100x100 area in top-left */
+    #secret-trigger { position: absolute; top: 0; left: 0; width: 100px; height: 100px; z-index: 100; cursor: pointer; }
+
+    @media (orientation: landscape) {
+      main { flex-direction: row; }
+      #speed { font-size: clamp(140px, 35vw, 320px); }
+    }
   </style>
 </head>
 <body>
+
   <div id="secret-trigger"></div>
+
   <div id="canvas-container"><canvas id="visualizer"></canvas></div>
-  
+
   <header>
-    <div class="app-title">AVAS CORE V2</div>
+    <div class="app-title">AVAS Core V1.18</div>
     <div class="status-indicator">
         <div class="status-dot" id="gps-dot"></div>
         <span id="gps-text">GPS SEARCHING</span>
     </div>
   </header>
-  
+
   <div class="telemetry-bar">
     <span id="acc-val">SIGNAL: --</span>
     <span id="sim-status">SIM: OFF</span>
   </div>
-  
+
   <main id="interaction-zone">
-    <div id="speed">0</div>
-    <div id="unit">MPH</div>
+    <div class="speed-container">
+        <div id="speed">0</div>
+        <div id="unit">MPH</div>
+    </div>
+    <div id="debug-label">LAB MODE ACTIVE</div>
   </main>
-  
+
   <div class="controls-bar"><button id="audio-btn">Standby</button></div>
 
   <script>
+    /**
+     * CORE VARIABLES
+     */
     const speedEl = document.getElementById('speed');
+    const gpsDot = document.getElementById('gps-dot');
+    const gpsText = document.getElementById('gps-text');
+    const accVal = document.getElementById('acc-val');
+    const simStatus = document.getElementById('sim-status');
     const audioBtn = document.getElementById('audio-btn');
+    const debugLabel = document.getElementById('debug-label');
+    const interactionZone = document.getElementById('interaction-zone');
     const canvas = document.getElementById('visualizer');
     const canvasCtx = canvas.getContext('2d');
 
-    let audioCtx, analyser, dataArray;
+    let audioCtx, analyser, gainIdle, vibratoLFO, vibratoGain;
+    let choir = [];
     let audioEnabled = false;
+    let isSimMode = false;
     let currentSpeed = 0;
 
-    function resize() {
-      canvas.width = window.innerWidth * window.devicePixelRatio;
-      canvas.height = window.innerHeight * window.devicePixelRatio;
-      canvasCtx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    /**
+     * VISUALIZER SETUP
+     * Handles canvas sizing and DPR scaling for crisp lines on high-res mobile screens.
+     */
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvasCtx.scale(dpr, dpr);
     }
-    window.addEventListener('resize', resize);
-    resize();
+    window.addEventListener('resize', resizeCanvas);
 
+    /**
+     * AUDIO ENGINE INITIALIZATION
+     * Triggered on first user interaction. Generates a "choir" of oscillators 
+     * to create a complex, harmonic engine sound.
+     */
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Main output volume control
+      gainIdle = audioCtx.createGain(); 
+      gainIdle.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+      
       analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      dataArray = new Uint8Array(analyser.frequencyBinCount);
-      
-      // Basic Oscillator to feed the visualizer
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(analyser);
+      analyser.fftSize = 512;
+
+      // VIBRATO: Creates a mechanical "throb" effect
+      vibratoLFO = audioCtx.createOscillator();
+      vibratoGain = audioCtx.createGain();
+      vibratoLFO.frequency.setValueAtTime(8, audioCtx.currentTime); // 8Hz throb
+      vibratoGain.gain.setValueAtTime(2, audioCtx.currentTime);
+      vibratoLFO.connect(vibratoGain);
+      vibratoLFO.start();
+
+      // CHOIR: Harmonic ratios for a futuristic electric hum
+      const ratios = [1.0, 1.49, 1.88, 2.1]; 
+      choir = ratios.map((ratio) => {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(55 * ratio, audioCtx.currentTime); 
+        
+        // Connect vibrato to each oscillator's frequency
+        vibratoGain.connect(osc.frequency);
+        
+        osc.connect(g);
+        g.connect(gainIdle);
+        osc.start();
+        return { osc, g, ratio };
+      });
+
+      gainIdle.connect(analyser);
       analyser.connect(audioCtx.destination);
-      osc.start();
-      gain.gain.value = 0.01; // Keep it quiet but present
-      
-      draw();
+      drawCanvas();
     }
 
-    function draw() {
-      requestAnimationFrame(draw);
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+    /**
+     * ANIMATION LOOP
+     * Draws the purple waveform background that reacts to the audio synthesis.
+     */
+    function drawCanvas() {
+      requestAnimationFrame(drawCanvas);
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
       canvasCtx.clearRect(0, 0, w, h);
 
-      if (!audioEnabled) return;
-
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
       analyser.getByteTimeDomainData(dataArray);
+
+      const speedFactor = Math.min(currentSpeed / 85, 1);
+      const idlePulse = (Math.sin(Date.now() / 500) + 1) * 2; 
       
-      canvasCtx.lineWidth = 3 + (currentSpeed / 20);
-      canvasCtx.strokeStyle = '#bc13fe';
-      canvasCtx.shadowBlur = 15;
+      canvasCtx.lineWidth = 5 + (speedFactor * 15) + idlePulse;
+      canvasCtx.lineJoin = 'round';
+      canvasCtx.strokeStyle = '#bc13fe'; 
+      canvasCtx.shadowBlur = 25;
       canvasCtx.shadowColor = '#bc13fe';
       
       canvasCtx.beginPath();
-      let sliceWidth = w / dataArray.length;
+      const sliceWidth = w / bufferLength;
       let x = 0;
 
-      for (let i = 0; i < dataArray.length; i++) {
-        let v = dataArray[i] / 128.0;
-        let y = v * h / 2;
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const idleWave = Math.sin(i * 0.1 + (Date.now() / 200)) * 5;
+        // Wave height scales with speed factor
+        const y = (v * h / 2) + (Math.sin(i * 0.05) * speedFactor * 50) + (speedFactor === 0 ? idleWave : 0);
+        
         if (i === 0) canvasCtx.moveTo(x, y);
         else canvasCtx.lineTo(x, y);
         x += sliceWidth;
       }
       canvasCtx.stroke();
+      canvasCtx.shadowBlur = 0;
     }
 
-    audioBtn.addEventListener('click', async () => {
+    /**
+     * IGNITION BUTTON
+     */
+    audioBtn.addEventListener('click', () => {
       if (!audioCtx) initAudio();
-      if (audioCtx.state === 'suspended') await audioCtx.resume();
-      
       audioEnabled = !audioEnabled;
-      audioBtn.textContent = audioEnabled ? "System Active" : "Standby";
+      audioBtn.textContent = audioEnabled ? "Active" : "Standby";
       audioBtn.classList.toggle('active-toggle', audioEnabled);
+      document.body.classList.toggle('audio-active', audioEnabled);
+      if (audioEnabled) {
+        audioCtx.resume();
+        updateSystem(currentSpeed);
+      } else {
+        gainIdle.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.1);
+      }
     });
 
-    // Simple simulation for testing
-    document.getElementById('interaction-zone').addEventListener('mousemove', (e) => {
-        currentSpeed = Math.floor((e.clientX / window.innerWidth) * 100);
-        speedEl.textContent = currentSpeed;
+    /**
+     * CORE LOGIC: Updates Speed, UI, and Audio Frequency
+     * @param {number} mph - The current speed
+     * @param {number} accuracy - GPS accuracy in meters
+     */
+    function updateSystem(mph, accuracy = null) {
+      currentSpeed = mph;
+      speedEl.textContent = Math.max(0, Math.round(mph));
+      
+      if (accuracy !== null) {
+        accVal.textContent = `SIGNAL: ±${Math.round(accuracy)}M`;
+        accVal.style.color = accuracy < 10 ? 'var(--accent-green)' : 'var(--text-muted)';
+      }
+
+      if (audioEnabled && audioCtx) {
+        // Frequency ramps up based on speed
+        const cloudShift = 1 + (mph / 110); 
+        choir.forEach(voice => {
+          voice.osc.frequency.setTargetAtTime((55 * voice.ratio) * cloudShift, audioCtx.currentTime, 0.1);
+        });
+        // Volume ramps up based on speed
+        gainIdle.gain.setTargetAtTime(0.1 + (mph / 200), audioCtx.currentTime, 0.1);
+      }
+    }
+
+    /**
+     * SECRET TRIGGER: Lab Mode Toggle
+     * Tapping the top-left corner switches between GPS and Manual Touch control.
+     */
+    document.getElementById('secret-trigger').addEventListener('click', () => {
+      isSimMode = !isSimMode;
+      simStatus.textContent = isSimMode ? "SIM: ACTIVE" : "SIM: OFF";
+      simStatus.style.color = isSimMode ? "var(--accent-orange)" : "var(--text-muted)";
+      debugLabel.classList.toggle('visible', isSimMode);
+      if (!isSimMode) updateSystem(0);
     });
+
+    /**
+     * TOUCH HANDLING: Lab Mode Manual Scrubbing
+     * Maps horizontal touch position to a 0-85 MPH value.
+     */
+    const handleTouch = (e) => {
+      if (!isSimMode) return;
+      const touch = e.touches ? e.touches[0] : e;
+      const rect = interactionZone.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      
+      const margin = rect.width * 0.12; 
+      const usableWidth = rect.width - (margin * 2);
+      const relativeX = Math.min(Math.max(x - margin, 0), usableWidth);
+      
+      // Calculate speed as a percentage of horizontal screen width
+      updateSystem((relativeX / usableWidth) * 85);
+    };
+
+    interactionZone.addEventListener('touchstart', handleTouch);
+    interactionZone.addEventListener('touchmove', handleTouch);
+
+    /**
+     * GPS ENGINE
+     * Uses hardware sensors to feed speed into the system.
+     */
+    function startGPS() {
+      navigator.geolocation.watchPosition((pos) => {
+        if (!isSimMode) {
+          gpsDot.classList.add('active');
+          gpsText.textContent = "GPS LINKED";
+          gpsText.style.color = "var(--accent-green)";
+          // Browser speed is m/s. Convert to MPH.
+          updateSystem(pos.coords.speed > 0 ? pos.coords.speed * 2.237 : 0, pos.coords.accuracy);
+        }
+      }, null, { enableHighAccuracy: true, maximumAge: 0 });
+    }
+
+    // Startup sequence
+    resizeCanvas();
+    startGPS();
+
+    // SERVICE WORKER: Required for the app to be "Installable" (PWA)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('data:text/javascript,self.addEventListener("fetch", (e) => e.respondWith(fetch(e.request)));');
+    }
   </script>
 </body>
 </html>
 
-
-
+```
 
 
 
