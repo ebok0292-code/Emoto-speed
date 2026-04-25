@@ -9,7 +9,6 @@
   <meta name="apple-mobile-web-app-title" content="AVAS Core">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#030405">
-  <link rel="manifest" href="manifest.json">
 
   <title>E-Moto AVAS System V1.18</title>
   <style>
@@ -35,32 +34,32 @@
 
     #canvas-container {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      z-index: 1; pointer-events: none; opacity: 0.7;
+      z-index: 1; pointer-events: none; opacity: 0.6;
     }
 
     header {
-      width: 100%; padding: 25px 24px 15px 24px;
+      width: 100%; padding: 30px 24px 10px 24px;
       display: flex; justify-content: space-between; align-items: center;
       z-index: 20;
     }
     
-    .app-title { font-size: 10px; font-weight: 900; letter-spacing: 5px; color: var(--text-muted); text-transform: uppercase; }
+    .app-title { font-size: 11px; font-weight: 900; letter-spacing: 4px; color: var(--text-muted); text-transform: uppercase; }
     
     .status-indicator { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 800; color: var(--text-muted); }
-    #gps-text.linked { color: var(--accent-green); letter-spacing: 1px; }
+    #gps-text.linked { color: var(--accent-green); letter-spacing: 1px; transition: color 0.5s ease; }
     
-    .status-dot { width: 10px; height: 10px; background-color: #200; border-radius: 50%; transition: all 0.3s; }
+    .status-dot { width: 8px; height: 8px; background-color: #300; border-radius: 50%; transition: all 0.4s; }
     .status-dot.active { 
       background-color: var(--accent-green); 
-      box-shadow: 0 0 15px var(--accent-green);
-      animation: blink 1.2s infinite ease-in-out;
+      box-shadow: 0 0 12px var(--accent-green);
+      animation: pulse 1.5s infinite ease-in-out;
     }
 
-    @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.2; transform: scale(0.8); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.9); } }
 
     .telemetry-bar {
-      width: 100%; padding: 0 24px 15px 24px; display: flex; justify-content: space-between;
-      font-size: 9px; font-family: monospace; letter-spacing: 2px; color: var(--text-muted);
+      width: 100%; padding: 0 24px 20px 24px; display: flex; justify-content: space-between;
+      font-size: 10px; font-family: 'Courier New', monospace; letter-spacing: 1px; color: var(--text-muted);
       z-index: 20;
     }
     
@@ -68,35 +67,36 @@
     
     .speed-container { pointer-events: none; display: flex; flex-direction: column; align-items: center; }
     #speed { 
-      font-family: 'Courier New', monospace; font-size: clamp(150px, 45vh, 300px); font-weight: 900; 
-      line-height: 0.75; color: var(--accent-cyan); 
-      text-shadow: 0 0 40px rgba(0, 242, 255, 0.15);
+      font-family: 'Courier New', monospace; font-size: clamp(120px, 40vh, 280px); font-weight: 900; 
+      line-height: 0.8; color: var(--accent-cyan); 
+      text-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+      transition: color 0.3s ease;
     }
-    #unit { font-size: 14px; font-weight: 900; letter-spacing: 18px; color: var(--text-muted); margin-top: 10px; }
+    #unit { font-size: 14px; font-weight: 900; letter-spacing: 15px; color: var(--text-muted); margin-top: 15px; padding-left: 15px; }
     
     #debug-label { 
-      position: absolute; bottom: 40px; font-size: 10px; color: var(--accent-orange); 
-      letter-spacing: 4px; font-weight: 900; opacity: 0; transition: opacity 0.3s;
+      position: absolute; bottom: 20px; font-size: 10px; color: var(--accent-orange); 
+      letter-spacing: 3px; font-weight: 900; opacity: 0; transition: opacity 0.3s;
       text-transform: uppercase;
     }
-    #debug-label.visible { opacity: 1; }
+    #debug-label.visible { opacity: 0.8; }
 
-    .controls-bar { width: 100%; padding: 20px 24px 60px 24px; display: flex; justify-content: center; z-index: 20; }
+    .controls-bar { width: 100%; padding: 20px 24px 50px 24px; display: flex; justify-content: center; z-index: 20; }
     button { 
-      width: 100%; max-width: 320px; padding: 22px; 
-      background: rgba(25, 27, 30, 0.7); backdrop-filter: blur(15px);
-      border: 1px solid rgba(255, 255, 255, 0.05); color: var(--text-main); 
-      font-size: 12px; font-weight: 900; letter-spacing: 5px; border-radius: 16px; 
-      text-transform: uppercase; transition: all 0.3s;
+      width: 100%; max-width: 340px; padding: 20px; 
+      background: rgba(20, 22, 25, 0.8); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1); color: var(--text-main); 
+      font-size: 13px; font-weight: 900; letter-spacing: 4px; border-radius: 12px; 
+      text-transform: uppercase; transition: all 0.2s active;
     }
-    button.active-toggle { border-color: var(--accent-green); color: var(--accent-green); background: rgba(0, 255, 136, 0.05); }
+    button:active { transform: scale(0.98); background: rgba(40, 42, 45, 0.9); }
+    button.active-toggle { border-color: var(--accent-green); color: var(--accent-green); box-shadow: 0 0 15px rgba(0, 255, 136, 0.1); }
     
-    #secret-trigger { position: absolute; top: 0; left: 0; width: 100px; height: 100px; z-index: 100; }
+    #secret-trigger { position: absolute; top: 0; left: 0; width: 80px; height: 80px; z-index: 100; }
 
     @media (orientation: landscape) {
-      main { flex-direction: row; }
-      #speed { font-size: clamp(140px, 35vw, 320px); }
-      .controls-bar { padding-bottom: 30px; }
+      #speed { font-size: clamp(100px, 30vw, 280px); }
+      .controls-bar { padding-bottom: 25px; }
     }
   </style>
 </head>
@@ -119,7 +119,7 @@
   
   <main id="interaction-zone">
     <div class="speed-container"><div id="speed">0</div><div id="unit">MPH</div></div>
-    <div id="debug-label">LAB MODE ACTIVE</div>
+    <div id="debug-label">SIMULATION ACTIVE</div>
   </main>
   
   <div class="controls-bar"><button id="audio-btn">Standby</button></div>
@@ -201,12 +201,11 @@
       analyser.getByteTimeDomainData(dataArray);
 
       const speedFactor = Math.min(currentSpeed / 85, 1);
-      const idlePulse = (Math.sin(Date.now() / 500) + 1) * 2; // Idle hum effect
       
-      canvasCtx.lineWidth = 5 + (speedFactor * 15) + idlePulse;
+      canvasCtx.lineWidth = 4 + (speedFactor * 12);
       canvasCtx.lineJoin = 'round';
       canvasCtx.strokeStyle = '#bc13fe'; 
-      canvasCtx.shadowBlur = 25;
+      canvasCtx.shadowBlur = 20;
       canvasCtx.shadowColor = '#bc13fe';
       
       canvasCtx.beginPath();
@@ -215,9 +214,8 @@
 
       for (let i = 0; i < bufferLength; i++) {
         const v = dataArray[i] / 128.0;
-        // Even at 0mph, the wave has a tiny sine offset
-        const idleWave = Math.sin(i * 0.1 + (Date.now() / 200)) * 5;
-        const y = (v * h / 2) + (Math.sin(i * 0.05) * speedFactor * 50) + (speedFactor === 0 ? idleWave : 0);
+        const idleWave = Math.sin(i * 0.1 + (Date.now() / 250)) * 4;
+        const y = (v * h / 2) + (Math.sin(i * 0.05) * speedFactor * 60) + (speedFactor === 0 ? idleWave : 0);
         
         if (i === 0) canvasCtx.moveTo(x, y);
         else canvasCtx.lineTo(x, y);
@@ -230,7 +228,7 @@
     audioBtn.addEventListener('click', () => {
       if (!audioCtx) initAudio();
       audioEnabled = !audioEnabled;
-      audioBtn.textContent = audioEnabled ? "Active" : "Standby";
+      audioBtn.textContent = audioEnabled ? "System Active" : "Standby";
       audioBtn.classList.toggle('active-toggle', audioEnabled);
       if (audioEnabled) {
         audioCtx.resume();
@@ -251,15 +249,15 @@
       }
       
       if (audioEnabled && audioCtx) {
-        const cloudShift = 1 + (mph / 110); 
+        const cloudShift = 1 + (mph / 100); 
         choir.forEach((osc, i) => {
           const base = [1.0, 1.49, 1.88, 2.1][i];
-          osc.frequency.linearRampToValueAtTime(220 * base * cloudShift, now + 0.15);
+          osc.frequency.linearRampToValueAtTime(220 * base * cloudShift, now + 0.1);
         });
-        vibratoLFO.frequency.linearRampToValueAtTime(1.8 + (mph / 9), now + 0.15);
-        vibratoGain.gain.linearRampToValueAtTime(3 + (mph / 4), now + 0.15);
-        gainIdle.gain.linearRampToValueAtTime(0.005 + (mph / 300), now + 0.15);
-        filter.frequency.linearRampToValueAtTime(1000 + (mph * 45), now + 0.15);
+        vibratoLFO.frequency.linearRampToValueAtTime(1.8 + (mph / 8), now + 0.1);
+        vibratoGain.gain.linearRampToValueAtTime(3 + (mph / 4), now + 0.1);
+        gainIdle.gain.linearRampToValueAtTime(0.005 + (mph / 250), now + 0.1);
+        filter.frequency.linearRampToValueAtTime(800 + (mph * 50), now + 0.1);
       }
     }
 
@@ -276,10 +274,10 @@
       const touch = e.touches ? e.touches[0] : e;
       const rect = interactionZone.getBoundingClientRect();
       const x = touch.clientX - rect.left;
-      const margin = rect.width * 0.12; // Adjusted margin
+      const margin = rect.width * 0.1;
       const usableWidth = rect.width - (margin * 2);
       const relativeX = Math.min(Math.max(x - margin, 0), usableWidth);
-      updateSystem((relativeX / usableWidth) * 85);
+      updateSystem((relativeX / usableWidth) * 99);
     };
 
     interactionZone.addEventListener('touchstart', handleTouch);
@@ -301,13 +299,13 @@
     resizeCanvas();
     startGPS();
 
-    // Register empty Service Worker to make it "Installable"
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('data:text/javascript,self.addEventListener("fetch", (e) => e.respondWith(fetch(e.request)));');
     }
   </script>
 </body>
 </html>
+
 
 
 
