@@ -9,12 +9,13 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0a0b0f">
   <link rel="manifest" href="manifest.json">
-  <title>E-Moto AVAS System V1.18</title>
+  <title>E-Moto AVAS System V2</title>
   <style>
     :root {
       --bg-color: #0a0b0f;
       --text-main: #e0e0e0;
       --text-muted: #555b66;
+      --accent: #00ff88;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -39,6 +40,7 @@
       mix-blend-mode: overlay;
     }
 
+    /* Tapping top left triggers lab mode */
     #secret-trigger {
       position: fixed;
       top: 0; left: 0;
@@ -49,7 +51,7 @@
     #gps-indicator {
       position: fixed;
       top: 28px;
-      right: 24px;
+      left: 24px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -66,9 +68,20 @@
       transition: all 0.4s ease;
     }
     .gps-dot.active {
-      background-color: #00ff88;
-      box-shadow: 0 0 12px #00ff88;
+      background-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
     }
+
+    #settings-toggle {
+      position: fixed;
+      top: 28px;
+      right: 24px;
+      color: var(--text-muted);
+      z-index: 30;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    #settings-toggle:hover { color: var(--text-main); }
 
     main {
       flex: 1; 
@@ -102,6 +115,7 @@
       color: var(--text-muted); 
       margin-top: 8px; 
       cursor: pointer;
+      pointer-events: auto;
       transition: color 0.3s;
     }
     #unit:hover { color: #00f2ff; }
@@ -133,7 +147,7 @@
       flex-shrink: 0;
     }
 
-    button {
+    button.primary-btn {
       width: 100%; 
       max-width: 340px; 
       padding: 24px 32px;
@@ -150,12 +164,99 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
 
-    button.active-toggle {
-      border-color: #00ff88; 
-      color: #00ff88;
+    button.primary-btn.active-toggle {
+      border-color: var(--accent); 
+      color: var(--accent);
       background: rgba(0, 255, 136, 0.08);
       box-shadow: 0 0 25px rgba(0, 255, 136, 0.25);
       animation: pulse-glow 2s infinite ease-in-out;
+    }
+
+    /* Modal Styles */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 1;
+      transition: opacity 0.3s;
+    }
+    .modal.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .modal-content {
+      background: #12141a;
+      width: 90%;
+      max-width: 360px;
+      border-radius: 24px;
+      padding: 32px 24px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 32px;
+      color: var(--text-main);
+    }
+    .setting-group {
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .setting-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .setting-group label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+    .setting-val {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+    select {
+      width: 100%;
+      padding: 12px;
+      background: #0a0b0f;
+      color: var(--text-main);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+    }
+    .close-modal-btn {
+      width: 100%;
+      padding: 16px;
+      margin-top: 16px;
+      background: var(--text-main);
+      color: var(--bg-color);
+      border: none;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
     }
 
     @keyframes pulse-glow {
@@ -177,6 +278,13 @@
     <span id="gps-text">GPS</span>
   </div>
 
+  <div id="settings-toggle">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  </div>
+
   <main id="interaction-zone">
     <div class="speed-container">
       <div id="speed">0</div>
@@ -186,173 +294,14 @@
   </main>
 
   <div class="controls-bar">
-    <button id="audio-btn">Standby</button>
+    <button id="audio-btn" class="primary-btn">Standby</button>
   </div>
 
-  <script>
-    const speedEl         = document.getElementById('speed');
-    const unitEl          = document.getElementById('unit');
-    const gpsDot          = document.getElementById('gps-dot');
-    const gpsText         = document.getElementById('gps-text');
-    const audioBtn        = document.getElementById('audio-btn');
-    const debugLabel      = document.getElementById('debug-label');
-    const interactionZone = document.getElementById('interaction-zone');
-
-    let audioCtx, gainIdle, filter, analyser;
-    let choir = [];
-    let vibratoLFO, vibratoGain;
-    let audioEnabled = false;
-    let isSimMode    = false;
-    let currentSpeed = 0;
-    let isKmh        = false;
-    let lastSpeed    = 0;
-
-    function initAudio() {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 512;
-
-      filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 1200;
-
-      gainIdle = audioCtx.createGain();
-      gainIdle.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-
-      vibratoLFO  = audioCtx.createOscillator();
-      vibratoGain = audioCtx.createGain();
-      vibratoLFO.frequency.value = 2.2;
-      vibratoGain.gain.value     = 4;
-      vibratoLFO.connect(vibratoGain);
-      vibratoLFO.start();
-
-      const ratios = [1.0, 1.35, 1.72, 2.05, 2.45];
-      choir = ratios.map((ratio, i) => {
-        const osc = audioCtx.createOscillator();
-        const g   = audioCtx.createGain();
-        osc.type = i === 4 ? 'sawtooth' : 'sine';
-        osc.frequency.value = 180 * ratio;
-        g.gain.value = i === 4 ? 0.08 : 0.14;
-        vibratoGain.connect(osc.frequency);
-        osc.connect(g);
-        g.connect(gainIdle);
-        g.connect(analyser);
-        osc.start();
-        return osc;
-      });
-
-      gainIdle.connect(filter);
-      filter.connect(audioCtx.destination);
-    }
-
-    audioBtn.addEventListener('click', () => {
-      if (!audioCtx) initAudio();
-      audioEnabled = !audioEnabled;
-      audioBtn.textContent = audioEnabled ? 'Active' : 'Standby';
-      audioBtn.classList.toggle('active-toggle', audioEnabled);
-      if (audioEnabled) audioCtx.resume();
-      updateSystem(currentSpeed);
-    });
-
-    function updateSystem(mph) {
-      currentSpeed = Math.max(0, mph);
-      const displaySpeed = isKmh ? Math.round(currentSpeed * 1.60934) : Math.round(currentSpeed);
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">System Setup</div>
       
-      // Small animation on number change
-      if (Math.abs(currentSpeed - lastSpeed) > 0.5) {
-        speedEl.style.transform = 'scale(0.92) translateY(-8px)';
-        setTimeout(() => {
-          speedEl.textContent = displaySpeed;
-          speedEl.style.transform = 'scale(1) translateY(0)';
-        }, 16);
-      } else {
-        speedEl.textContent = displaySpeed;
-      }
-      lastSpeed = currentSpeed;
-
-      // Smooth color gradient
-      let hue, saturation = 100, lightness = 68;
-      if (currentSpeed <= 20) {
-        hue = 140;
-      } else if (currentSpeed <= 30) {
-        hue = 140 - ((currentSpeed - 20) / 10) * 50;
-      } else if (currentSpeed <= 45) {
-        hue = 90 - ((currentSpeed - 30) / 15) * 45;
-      } else if (currentSpeed <= 60) {
-        hue = 45 - ((currentSpeed - 45) / 15) * 30;
-      } else if (currentSpeed <= 65) {
-        hue = 15;
-      } else {
-        hue = 15;
-        lightness = Math.max(48, 68 - (currentSpeed - 65) * 1.8);
-      }
-
-      const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-      const glow = currentSpeed > 55 ? 0.75 : 0.48;
-
-      speedEl.style.color = color;
-      speedEl.style.textShadow = `
-        0 0 58px hsla(${hue}, 100%, 75%, ${glow}),
-        0 0 115px hsla(${hue}, 100%, 68%, 0.38)
-      `;
-
-      if (audioEnabled && audioCtx) {
-        const speedFactor = currentSpeed / 45;  // Warbly/vibrato reaches full intensity much earlier
-
-        const shift = 1 + (currentSpeed / 75);   // Overall pitch rises faster
-        choir.forEach((osc, i) => {
-          const base = [1.0, 1.35, 1.72, 2.05, 2.45][i];
-          osc.frequency.linearRampToValueAtTime(180 * base * shift, audioCtx.currentTime + 0.1);
-        });
-
-        // Warbly sound (vibrato) reaches "80 mph level" at \~45 mph and gets even stronger after
-        vibratoLFO.frequency.linearRampToValueAtTime(2.2 + (speedFactor * 6.5), audioCtx.currentTime + 0.1);
-        vibratoGain.gain.linearRampToValueAtTime(4 + (speedFactor * 5.5), audioCtx.currentTime + 0.1);
-
-        gainIdle.gain.linearRampToValueAtTime(0.009 + (currentSpeed / 180), audioCtx.currentTime + 0.1);
-        filter.frequency.linearRampToValueAtTime(1050 + (currentSpeed * 62), audioCtx.currentTime + 0.1); // stronger "cloudy" sweep
-      }
-    }
-
-    unitEl.addEventListener('click', () => {
-      isKmh = !isKmh;
-      unitEl.textContent = isKmh ? 'KM/H' : 'MPH';
-      updateSystem(currentSpeed);
-    });
-
-    document.getElementById('secret-trigger').addEventListener('click', () => {
-      isSimMode = !isSimMode;
-      debugLabel.classList.toggle('visible', isSimMode);
-      if (!isSimMode) updateSystem(0);
-    });
-
-    const handleTouch = (e) => {
-      if (!isSimMode) return;
-      const touch = e.touches ? e.touches[0] : e;
-      const rect  = interactionZone.getBoundingClientRect();
-      const x     = touch.clientX - rect.left;
-      const margin = rect.width * 0.12;
-      const usable = rect.width - margin * 2;
-      const relX   = Math.min(Math.max(x - margin, 0), usable);
-      updateSystem((relX / usable) * 85);
-    };
-
-    interactionZone.addEventListener('touchstart', handleTouch);
-    interactionZone.addEventListener('touchmove', handleTouch);
-    interactionZone.addEventListener('mousedown', () => window.addEventListener('mousemove', handleTouch));
-    window.addEventListener('mouseup', () => window.removeEventListener('mousemove', handleTouch));
-
-    function startGPS() {
-      navigator.geolocation.watchPosition((pos) => {
-        if (!isSimMode) {
-          gpsDot.classList.add('active');
-          gpsText.style.color = '#00ff88';
-          updateSystem(pos.coords.speed > 0 ? pos.coords.speed * 2.237 : 0);
-        }
-      }, null, { enableHighAccuracy: true, maximumAge: 0 });
-    }
-
-    startGPS();
-  </script>
-</body>
-</html>
+      <div class="setting-group">
+        <div class="setting-header">
+          <label>Master Output</label>
+          <span class="setting-val
