@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -319,7 +320,6 @@
     <button id="audio-btn">Standby</button>
   </div>
 
-  <!-- Settings sheet -->
   <div id="settings-overlay">
     <div id="settings-sheet">
       <div class="sheet-handle"></div>
@@ -384,6 +384,9 @@
     let volLevel     = 0.65;  // 0–1
     let eqMode       = 'cloud';
     let wakeLock     = null;
+    let targetSpeed  = 0;
+    let smoothedSpeed = 0;
+    let smootherRunning = false;
 
     // ── Wake Lock — keep screen on while active ──────────────────────────────
     async function requestWakeLock() {
@@ -544,7 +547,4 @@
       speedNextEl.style.textShadow = speedEl.style.textShadow;
       speedNextEl.style.opacity    = '0';
       speedNextEl.classList.remove('anim-in-up','anim-in-down');
-      speedEl.classList.remove('anim-out-up','anim-out-down');
-
-      // Trigger reflow
-      void speedEl.offsetWid
+      speedEl.classList.remove('anim-out-up','an
