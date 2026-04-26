@@ -48,13 +48,9 @@
 
     #gps-indicator {
       position: fixed;
-      top: 28px;
-      right: 24px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      font-weight: 700;
+      top: 28px; right: 24px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 700;
       color: var(--text-muted);
       z-index: 30;
     }
@@ -71,88 +67,61 @@
     }
 
     main {
-      flex: 1; 
-      display: flex; 
-      flex-direction: column;
-      align-items: center; 
-      justify-content: center;
-      position: relative; 
-      z-index: 10;
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      position: relative; z-index: 10;
     }
 
-    .speed-container { 
-      pointer-events: none; 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
+    .speed-container {
+      pointer-events: none;
+      display: flex; flex-direction: column; align-items: center;
     }
 
     #speed {
       font-family: 'Courier New', monospace;
-      font-size: clamp(125px, 40vh, 290px); 
-      font-weight: 900; 
-      line-height: 0.72;
+      font-size: clamp(125px, 40vh, 290px);
+      font-weight: 900; line-height: 0.72;
       transition: color 0.45s ease, text-shadow 0.45s ease, transform 0.28s cubic-bezier(0.23, 1, 0.32, 1);
     }
 
-    #unit { 
-      font-size: 16px; 
-      font-weight: 900; 
-      letter-spacing: 22px; 
-      color: var(--text-muted); 
-      margin-top: 8px; 
-      cursor: pointer;
-      transition: color 0.3s;
+    #unit {
+      font-size: 16px; font-weight: 900; letter-spacing: 22px;
+      color: var(--text-muted); margin-top: 8px;
+      cursor: pointer; transition: color 0.3s;
     }
     #unit:hover { color: #00f2ff; }
 
     #debug-label {
-      position: absolute; 
-      top: 32px; 
-      left: 50%;
+      position: absolute; top: 32px; left: 50%;
       transform: translateX(-50%);
-      font-size: 9.5px; 
-      color: #ff9d00;
-      letter-spacing: 3px; 
-      font-weight: 900;
-      opacity: 0; 
-      transition: opacity 0.4s; 
-      text-transform: uppercase;
+      font-size: 9.5px; color: #ff9d00;
+      letter-spacing: 3px; font-weight: 900;
+      opacity: 0; transition: opacity 0.4s; text-transform: uppercase;
       background: rgba(255, 157, 0, 0.08);
-      padding: 4px 12px;
-      border-radius: 20px;
+      padding: 4px 12px; border-radius: 20px;
     }
     #debug-label.visible { opacity: 1; }
 
     .controls-bar {
       width: 100%;
       padding: 20px 24px calc(env(safe-area-inset-bottom, 0px) + 32px) 24px;
-      display: flex; 
-      justify-content: center; 
-      z-index: 20; 
-      flex-shrink: 0;
+      display: flex; justify-content: center;
+      z-index: 20; flex-shrink: 0;
     }
 
     button {
-      width: 100%; 
-      max-width: 340px; 
-      padding: 24px 32px;
-      background: rgba(20, 22, 28, 0.85); 
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.08); 
-      color: var(--text-main);
-      font-size: 13.5px; 
-      font-weight: 900; 
-      letter-spacing: 5.5px; 
-      border-radius: 18px;
-      text-transform: uppercase; 
-      transition: all 0.4s ease;
+      width: 100%; max-width: 340px; padding: 24px 32px;
+      background: rgba(20, 22, 28, 0.85); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08); color: var(--text-main);
+      font-size: 13.5px; font-weight: 900; letter-spacing: 5.5px; border-radius: 18px;
+      text-transform: uppercase; transition: all 0.4s ease;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
     }
 
     button.active-toggle {
-      border-color: #00ff88; 
-      color: #00ff88;
+      border-color: #00ff88; color: #00ff88;
       background: rgba(0, 255, 136, 0.08);
       box-shadow: 0 0 25px rgba(0, 255, 136, 0.25);
       animation: pulse-glow 2s infinite ease-in-out;
@@ -160,7 +129,7 @@
 
     @keyframes pulse-glow {
       0%, 100% { box-shadow: 0 0 25px rgba(0, 255, 136, 0.25); }
-      50% { box-shadow: 0 0 35px rgba(0, 255, 136, 0.45); }
+      50%       { box-shadow: 0 0 35px rgba(0, 255, 136, 0.45); }
     }
 
     @media (orientation: landscape) {
@@ -199,7 +168,7 @@
     const interactionZone = document.getElementById('interaction-zone');
 
     let audioCtx, gainIdle, filter, analyser;
-    let choir = [];
+    let choir        = [];
     let vibratoLFO, vibratoGain;
     let audioEnabled = false;
     let isSimMode    = false;
@@ -207,13 +176,61 @@
     let isKmh        = false;
     let lastSpeed    = 0;
 
+    // ── GPS smoothing ────────────────────────────────────────────────────────
+    // Problem: GPS speed readings jump erratically (3 → 8 → 12 → 3mph) even
+    // when moving steadily. Raw readings fed directly to audio sound jarring.
+    //
+    // Solution: rolling median window + adaptive exponential moving average.
+    //
+    //   Step 1 — Rolling median (last 4 readings):
+    //     Knocks out single-sample spikes entirely. A lone bad reading gets
+    //     buried in the middle of the sorted window instead of spiking output.
+    //
+    //   Step 2 — Adaptive EMA on the median:
+    //     Alpha (how quickly we chase the new value) scales with current speed.
+    //     Slow speed = heavy smoothing (jitter from 3→8mph barely registers).
+    //     Fast speed = lighter smoothing (real acceleration still tracks).
+    //     Range: alpha 0.12 at 0mph → 0.38 at 30mph+
+    //
+    //   Step 3 — Spike guard:
+    //     If the median jumps >18mph from our smoothed value in one update,
+    //     we only accept 25% of that jump. The next reading confirms it's real.
+    //     This handles GPS re-acquiring after a tunnel or building blockage.
+    //
+    // Result: display and audio feel like a real speedometer needle —
+    // smooth, responsive to real acceleration, immune to GPS noise.
+
+    let gpsSmoothed  = 0;
+    let gpsReadings  = [];
+    const GPS_WINDOW = 4;
+
+    function smoothGPS(rawMph) {
+      gpsReadings.push(rawMph);
+      if (gpsReadings.length > GPS_WINDOW) gpsReadings.shift();
+
+      // Median of rolling window
+      const sorted = [...gpsReadings].sort((a, b) => a - b);
+      const median = sorted[Math.floor(sorted.length / 2)];
+
+      // Adaptive alpha: heavier smoothing at low speed, lighter at high speed
+      const alpha = Math.min(0.12 + (gpsSmoothed / 30) * 0.26, 0.38);
+
+      // Spike guard: large single-frame jump → accept only 25% until confirmed
+      const delta     = Math.abs(median - gpsSmoothed);
+      const effective = delta > 18 ? alpha * 0.25 : alpha;
+
+      gpsSmoothed = gpsSmoothed + effective * (median - gpsSmoothed);
+      return Math.max(0, gpsSmoothed);
+    }
+
+    // ── Audio init ───────────────────────────────────────────────────────────
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 512;
 
       filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass';
+      filter.type            = 'lowpass';
       filter.frequency.value = 1200;
 
       gainIdle = audioCtx.createGain();
@@ -230,9 +247,9 @@
       choir = ratios.map((ratio, i) => {
         const osc = audioCtx.createOscillator();
         const g   = audioCtx.createGain();
-        osc.type = i === 4 ? 'sawtooth' : 'sine';
+        osc.type            = i === 4 ? 'sawtooth' : 'sine';
         osc.frequency.value = 180 * ratio;
-        g.gain.value = i === 4 ? 0.08 : 0.14;
+        g.gain.value        = i === 4 ? 0.08 : 0.14;
         vibratoGain.connect(osc.frequency);
         osc.connect(g);
         g.connect(gainIdle);
@@ -245,20 +262,36 @@
       filter.connect(audioCtx.destination);
     }
 
+    // ── Audio button ─────────────────────────────────────────────────────────
     audioBtn.addEventListener('click', () => {
       if (!audioCtx) initAudio();
+
       audioEnabled = !audioEnabled;
       audioBtn.textContent = audioEnabled ? 'Active' : 'Standby';
       audioBtn.classList.toggle('active-toggle', audioEnabled);
-      if (audioEnabled) audioCtx.resume();
-      updateSystem(currentSpeed);
+
+      if (audioEnabled) {
+        // Resume context (required after user gesture on iOS/Android)
+        audioCtx.resume().then(() => updateSystem(currentSpeed));
+      } else {
+        // Fade out cleanly over 300ms — no click or pop
+        gainIdle.gain.cancelScheduledValues(audioCtx.currentTime);
+        gainIdle.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.1);
+        // Suspend after fade so it uses no CPU while standby
+        setTimeout(() => {
+          if (!audioEnabled) audioCtx.suspend();
+        }, 400);
+      }
     });
 
+    // ── System update ────────────────────────────────────────────────────────
     function updateSystem(mph) {
       currentSpeed = Math.max(0, mph);
-      const displaySpeed = isKmh ? Math.round(currentSpeed * 1.60934) : Math.round(currentSpeed);
-      
-      // Small animation on number change
+      const displaySpeed = isKmh
+        ? Math.round(currentSpeed * 1.60934)
+        : Math.round(currentSpeed);
+
+      // Subtle scale animation on number change
       if (Math.abs(currentSpeed - lastSpeed) > 0.5) {
         speedEl.style.transform = 'scale(0.92) translateY(-8px)';
         setTimeout(() => {
@@ -270,67 +303,65 @@
       }
       lastSpeed = currentSpeed;
 
-      // Smooth color gradient
-      let hue, saturation = 100, lightness = 68;
-      if (currentSpeed <= 20) {
-        hue = 140;
-      } else if (currentSpeed <= 30) {
-        hue = 140 - ((currentSpeed - 20) / 10) * 50;
-      } else if (currentSpeed <= 45) {
-        hue = 90 - ((currentSpeed - 30) / 15) * 45;
-      } else if (currentSpeed <= 60) {
-        hue = 45 - ((currentSpeed - 45) / 15) * 30;
-      } else if (currentSpeed <= 65) {
-        hue = 15;
-      } else {
-        hue = 15;
-        lightness = Math.max(48, 68 - (currentSpeed - 65) * 1.8);
+      // Speed-reactive color: green → yellow-orange → red
+      let hue, lightness = 68;
+      if (currentSpeed <= 20)      hue = 140;
+      else if (currentSpeed <= 30) hue = 140 - ((currentSpeed - 20) / 10) * 50;
+      else if (currentSpeed <= 45) hue = 90  - ((currentSpeed - 30) / 15) * 45;
+      else if (currentSpeed <= 60) hue = 45  - ((currentSpeed - 45) / 15) * 30;
+      else {
+        hue       = 15;
+        lightness = Math.max(48, 68 - (currentSpeed - 60) * 1.8);
       }
 
-      const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
       const glow = currentSpeed > 55 ? 0.75 : 0.48;
-
-      speedEl.style.color = color;
+      speedEl.style.color      = `hsl(${hue}, 100%, ${lightness}%)`;
       speedEl.style.textShadow = `
-        0 0 58px hsla(${hue}, 100%, 75%, ${glow}),
+        0 0 58px  hsla(${hue}, 100%, 75%, ${glow}),
         0 0 115px hsla(${hue}, 100%, 68%, 0.38)
       `;
 
-      if (audioEnabled && audioCtx) {
-        const speedFactor = currentSpeed / 45;  // Warbly/vibrato reaches full intensity much earlier
+      // Audio — only update if active
+      if (!audioEnabled || !audioCtx) return;
 
-        const shift = 1 + (currentSpeed / 75);   // Overall pitch rises faster
-        choir.forEach((osc, i) => {
-          const base = [1.0, 1.35, 1.72, 2.05, 2.45][i];
-          osc.frequency.linearRampToValueAtTime(180 * base * shift, audioCtx.currentTime + 0.1);
-        });
+      const now         = audioCtx.currentTime;
+      // Audio ramp time: longer at low speed (smoother feel), shorter at speed
+      // so fast acceleration is still reactive but slow crawl never jumps
+      const ramp        = Math.max(0.18 - (currentSpeed / 85) * 0.12, 0.06);
+      const speedFactor = currentSpeed / 45;
 
-        // Warbly sound (vibrato) reaches "80 mph level" at \~45 mph and gets even stronger after
-        vibratoLFO.frequency.linearRampToValueAtTime(2.2 + (speedFactor * 6.5), audioCtx.currentTime + 0.1);
-        vibratoGain.gain.linearRampToValueAtTime(4 + (speedFactor * 5.5), audioCtx.currentTime + 0.1);
+      const shift = 1 + (currentSpeed / 75);
+      choir.forEach((osc, i) => {
+        const base = [1.0, 1.35, 1.72, 2.05, 2.45][i];
+        osc.frequency.setTargetAtTime(180 * base * shift, now, ramp);
+      });
 
-        gainIdle.gain.linearRampToValueAtTime(0.009 + (currentSpeed / 180), audioCtx.currentTime + 0.1);
-        filter.frequency.linearRampToValueAtTime(1050 + (currentSpeed * 62), audioCtx.currentTime + 0.1); // stronger "cloudy" sweep
-      }
+      vibratoLFO.frequency.setTargetAtTime(2.2 + speedFactor * 6.5,  now, ramp);
+      vibratoGain.gain.setTargetAtTime(4    + speedFactor * 5.5,      now, ramp);
+      gainIdle.gain.setTargetAtTime(0.009   + (currentSpeed / 180),   now, ramp);
+      filter.frequency.setTargetAtTime(1050 + (currentSpeed * 62),    now, ramp);
     }
 
+    // ── KMH toggle ───────────────────────────────────────────────────────────
     unitEl.addEventListener('click', () => {
       isKmh = !isKmh;
       unitEl.textContent = isKmh ? 'KM/H' : 'MPH';
       updateSystem(currentSpeed);
     });
 
+    // ── Sim mode ─────────────────────────────────────────────────────────────
     document.getElementById('secret-trigger').addEventListener('click', () => {
       isSimMode = !isSimMode;
       debugLabel.classList.toggle('visible', isSimMode);
       if (!isSimMode) updateSystem(0);
     });
 
+    // ── Touch/mouse sim control ──────────────────────────────────────────────
     const handleTouch = (e) => {
       if (!isSimMode) return;
-      const touch = e.touches ? e.touches[0] : e;
-      const rect  = interactionZone.getBoundingClientRect();
-      const x     = touch.clientX - rect.left;
+      const touch  = e.touches ? e.touches[0] : e;
+      const rect   = interactionZone.getBoundingClientRect();
+      const x      = touch.clientX - rect.left;
       const margin = rect.width * 0.12;
       const usable = rect.width - margin * 2;
       const relX   = Math.min(Math.max(x - margin, 0), usable);
@@ -338,17 +369,19 @@
     };
 
     interactionZone.addEventListener('touchstart', handleTouch);
-    interactionZone.addEventListener('touchmove', handleTouch);
-    interactionZone.addEventListener('mousedown', () => window.addEventListener('mousemove', handleTouch));
+    interactionZone.addEventListener('touchmove',  handleTouch);
+    interactionZone.addEventListener('mousedown',  () => window.addEventListener('mousemove', handleTouch));
     window.addEventListener('mouseup', () => window.removeEventListener('mousemove', handleTouch));
 
+    // ── GPS ──────────────────────────────────────────────────────────────────
     function startGPS() {
       navigator.geolocation.watchPosition((pos) => {
-        if (!isSimMode) {
-          gpsDot.classList.add('active');
-          gpsText.style.color = '#00ff88';
-          updateSystem(pos.coords.speed > 0 ? pos.coords.speed * 2.237 : 0);
-        }
+        if (isSimMode) return;
+        gpsDot.classList.add('active');
+        gpsText.style.color = '#00ff88';
+        const rawMph    = pos.coords.speed > 0 ? pos.coords.speed * 2.237 : 0;
+        const smoothMph = smoothGPS(rawMph);
+        updateSystem(smoothMph);
       }, null, { enableHighAccuracy: true, maximumAge: 0 });
     }
 
