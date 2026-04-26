@@ -30,137 +30,261 @@
 
     body::before {
       content: '';
-      position: fixed;
-      inset: 0;
+      position: fixed; inset: 0;
       background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.015) 0%, transparent 70%),
                   url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27100%27 height=%27100%27 viewBox=%270 0 100 100%27%3E%3Cfilter id=%27n%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.9%27 numOctaves=%274%27 stitchTiles=%27stitch%27/%3E%3C/filter%3E%3Crect width=%27100%27 height=%27100%27 filter=%27url(%23n)%27 opacity=%270.035%27/%3E%3C/svg%27') repeat;
-      pointer-events: none;
-      z-index: 1;
-      mix-blend-mode: overlay;
+      pointer-events: none; z-index: 1; mix-blend-mode: overlay;
     }
 
     #secret-trigger {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100px; height: 100px;
-      z-index: 999;
+      position: fixed; top: 0; left: 0;
+      width: 100px; height: 100px; z-index: 999;
     }
 
+    /* ── GPS indicator ── */
     #gps-indicator {
-      position: fixed;
-      top: 28px;
-      right: 24px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
-      z-index: 30;
+      position: fixed; top: 28px; right: 24px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 700; color: var(--text-muted); z-index: 30;
     }
-
     .gps-dot {
-      width: 9px; height: 9px;
-      background-color: #222;
-      border-radius: 50%;
-      transition: all 0.4s ease;
+      width: 9px; height: 9px; background-color: #222;
+      border-radius: 50%; transition: all 0.4s ease;
     }
-    .gps-dot.active {
-      background-color: #00ff88;
-      box-shadow: 0 0 12px #00ff88;
+    .gps-dot.active { background-color: #00ff88; box-shadow: 0 0 12px #00ff88; }
+
+    /* ── Settings gear — top right, below GPS ── */
+    #settings-btn {
+      position: fixed; top: 58px; right: 24px;
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); z-index: 30; cursor: pointer;
+      transition: color 0.3s, transform 0.4s ease;
+      background: none; border: none; padding: 0;
+      font-size: 18px; letter-spacing: 0;
     }
+    #settings-btn:hover { color: #00f2ff; }
+    #settings-btn.open { transform: rotate(60deg); color: #00f2ff; }
 
     main {
-      flex: 1; 
-      display: flex; 
-      flex-direction: column;
-      align-items: center; 
-      justify-content: center;
-      position: relative; 
-      z-index: 10;
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      position: relative; z-index: 10;
     }
 
-    .speed-container { 
-      pointer-events: none; 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
+    .speed-container {
+      pointer-events: none;
+      display: flex; flex-direction: column; align-items: center;
     }
 
-    #speed {
-      font-family: 'Courier New', monospace;
-      font-size: clamp(125px, 40vh, 290px); 
-      font-weight: 900; 
+    /* ── Speed digit — animated via clip approach ── */
+    #speed-wrapper {
+      position: relative;
+      overflow: hidden;
       line-height: 0.72;
-      transition: color 0.45s ease, text-shadow 0.45s ease, transform 0.28s cubic-bezier(0.23, 1, 0.32, 1);
     }
 
-    #unit { 
-      font-size: 16px; 
-      font-weight: 900; 
-      letter-spacing: 22px; 
-      color: var(--text-muted); 
-      margin-top: 8px; 
-      cursor: pointer;
+    #speed, #speed-next {
+      font-family: 'Courier New', monospace;
+      font-size: clamp(125px, 40vh, 290px);
+      font-weight: 900; line-height: 0.72;
+      display: block;
+      will-change: transform, opacity;
+    }
+
+    #speed-next {
+      position: absolute; top: 0; left: 0; right: 0;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Going up: old slides down-out, new slides up-in */
+    @keyframes slideOutDown {
+      to { transform: translateY(30%); opacity: 0; }
+    }
+    @keyframes slideInUp {
+      from { transform: translateY(-30%); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    /* Going down: old slides up-out, new slides down-in */
+    @keyframes slideOutUp {
+      to { transform: translateY(-30%); opacity: 0; }
+    }
+    @keyframes slideInDown {
+      from { transform: translateY(30%);  opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    #speed.anim-out-down  { animation: slideOutDown 0.18s cubic-bezier(0.4,0,1,1) forwards; }
+    #speed.anim-out-up    { animation: slideOutUp   0.18s cubic-bezier(0.4,0,1,1) forwards; }
+    #speed-next.anim-in-up   { animation: slideInUp   0.22s cubic-bezier(0,0,0.2,1) forwards; }
+    #speed-next.anim-in-down { animation: slideInDown 0.22s cubic-bezier(0,0,0.2,1) forwards; }
+
+    #unit {
+      font-size: 16px; font-weight: 900; letter-spacing: 22px;
+      color: var(--text-muted); margin-top: 8px;
+      cursor: pointer; pointer-events: auto;
       transition: color 0.3s;
     }
     #unit:hover { color: #00f2ff; }
 
+    /* ── Trip max speed ── */
+    #trip-max {
+      margin-top: 18px;
+      font-size: 10px; font-weight: 700; letter-spacing: 3px;
+      color: var(--text-muted); text-transform: uppercase;
+      cursor: pointer; pointer-events: auto;
+      transition: color 0.25s;
+      opacity: 0.7;
+    }
+    #trip-max:active { color: #00f2ff; }
+
     #debug-label {
-      position: absolute; 
-      top: 32px; 
-      left: 50%;
+      position: absolute; top: 32px; left: 50%;
       transform: translateX(-50%);
-      font-size: 9.5px; 
-      color: #ff9d00;
-      letter-spacing: 3px; 
-      font-weight: 900;
-      opacity: 0; 
-      transition: opacity 0.4s; 
-      text-transform: uppercase;
+      font-size: 9.5px; color: #ff9d00;
+      letter-spacing: 3px; font-weight: 900;
+      opacity: 0; transition: opacity 0.4s; text-transform: uppercase;
       background: rgba(255, 157, 0, 0.08);
-      padding: 4px 12px;
-      border-radius: 20px;
+      padding: 4px 12px; border-radius: 20px;
     }
     #debug-label.visible { opacity: 1; }
 
     .controls-bar {
       width: 100%;
       padding: 20px 24px calc(env(safe-area-inset-bottom, 0px) + 32px) 24px;
-      display: flex; 
-      justify-content: center; 
-      z-index: 20; 
-      flex-shrink: 0;
+      display: flex; justify-content: center; z-index: 20; flex-shrink: 0;
     }
 
-    button {
-      width: 100%; 
-      max-width: 340px; 
-      padding: 24px 32px;
-      background: rgba(20, 22, 28, 0.85); 
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.08); 
-      color: var(--text-main);
-      font-size: 13.5px; 
-      font-weight: 900; 
-      letter-spacing: 5.5px; 
-      border-radius: 18px;
-      text-transform: uppercase; 
-      transition: all 0.4s ease;
+    button#audio-btn {
+      width: 100%; max-width: 340px; padding: 24px 32px;
+      background: rgba(20, 22, 28, 0.85); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08); color: var(--text-main);
+      font-size: 13.5px; font-weight: 900; letter-spacing: 5.5px; border-radius: 18px;
+      text-transform: uppercase; transition: all 0.4s ease; cursor: pointer;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
-
-    button.active-toggle {
-      border-color: #00ff88; 
-      color: #00ff88;
+    button#audio-btn.active-toggle {
+      border-color: #00ff88; color: #00ff88;
       background: rgba(0, 255, 136, 0.08);
       box-shadow: 0 0 25px rgba(0, 255, 136, 0.25);
       animation: pulse-glow 2s infinite ease-in-out;
     }
-
     @keyframes pulse-glow {
       0%, 100% { box-shadow: 0 0 25px rgba(0, 255, 136, 0.25); }
-      50% { box-shadow: 0 0 35px rgba(0, 255, 136, 0.45); }
+      50%       { box-shadow: 0 0 35px rgba(0, 255, 136, 0.45); }
+    }
+
+    /* ══════════════════════════════════════════
+       SETTINGS MODAL
+    ══════════════════════════════════════════ */
+    #settings-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(12px);
+      z-index: 200;
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #settings-overlay.open {
+      opacity: 1; pointer-events: all;
+    }
+
+    #settings-sheet {
+      width: 100%; max-width: 480px;
+      background: #12141a;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-bottom: none;
+      border-radius: 24px 24px 0 0;
+      padding: 12px 28px calc(env(safe-area-inset-bottom, 0px) + 36px) 28px;
+      transform: translateY(100%);
+      transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    #settings-overlay.open #settings-sheet {
+      transform: translateY(0);
+    }
+
+    .sheet-handle {
+      width: 40px; height: 4px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px; margin: 0 auto 24px;
+    }
+
+    .sheet-title {
+      font-size: 11px; font-weight: 900; letter-spacing: 4px;
+      color: var(--text-muted); text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    /* Section label */
+    .setting-label {
+      font-size: 10px; font-weight: 800; letter-spacing: 3px;
+      color: var(--text-muted); text-transform: uppercase;
+      margin-bottom: 14px; margin-top: 24px;
+    }
+    .setting-label:first-of-type { margin-top: 0; }
+
+    /* Volume slider */
+    #vol-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px;
+      background: rgba(255,255,255,0.1); border-radius: 2px; outline: none;
+      margin-bottom: 6px;
+    }
+    #vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #00f2ff;
+      box-shadow: 0 0 10px rgba(0,242,255,0.5);
+      cursor: pointer;
+    }
+    .vol-labels {
+      display: flex; justify-content: space-between;
+      font-size: 9px; letter-spacing: 1px; color: var(--text-muted);
+    }
+
+    /* Preset buttons */
+    .preset-row {
+      display: flex; gap: 10px; margin-bottom: 4px;
+    }
+    .preset-btn {
+      flex: 1; padding: 12px 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px; color: var(--text-muted);
+      font-size: 10px; font-weight: 800; letter-spacing: 2px;
+      text-transform: uppercase; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .preset-btn:active { transform: scale(0.96); }
+    .preset-btn.active {
+      border-color: #00f2ff; color: #00f2ff;
+      background: rgba(0,242,255,0.07);
+    }
+
+    /* EQ / character presets */
+    .eq-row {
+      display: flex; gap: 10px;
+    }
+    .eq-btn {
+      flex: 1; padding: 13px 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px; color: var(--text-muted);
+      font-size: 10px; font-weight: 800; letter-spacing: 1.5px;
+      text-transform: uppercase; cursor: pointer;
+      transition: all 0.2s; text-align: center;
+    }
+    .eq-btn:active { transform: scale(0.96); }
+    .eq-btn.active {
+      border-color: #bc13fe; color: #bc13fe;
+      background: rgba(188,19,254,0.07);
+    }
+    .eq-btn .eq-sub {
+      display: block; font-size: 8px; letter-spacing: 1px;
+      opacity: 0.55; margin-top: 3px; font-weight: 600;
     }
 
     @media (orientation: landscape) {
@@ -177,10 +301,16 @@
     <span id="gps-text">GPS</span>
   </div>
 
+  <button id="settings-btn" title="Settings">⚙</button>
+
   <main id="interaction-zone">
     <div class="speed-container">
-      <div id="speed">0</div>
+      <div id="speed-wrapper">
+        <div id="speed">0</div>
+        <div id="speed-next">0</div>
+      </div>
       <div id="unit">MPH</div>
+      <div id="trip-max">MAX: --</div>
     </div>
     <div id="debug-label">LAB MODE</div>
   </main>
@@ -189,15 +319,59 @@
     <button id="audio-btn">Standby</button>
   </div>
 
+  <!-- Settings sheet -->
+  <div id="settings-overlay">
+    <div id="settings-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title">Sound Settings</div>
+
+      <div class="setting-label">Volume</div>
+      <input type="range" id="vol-slider" min="0" max="100" value="65">
+      <div class="vol-labels"><span>Silent</span><span>Full</span></div>
+
+      <div class="setting-label">Quick Levels</div>
+      <div class="preset-row">
+        <button class="preset-btn" data-vol="20">Low</button>
+        <button class="preset-btn" data-vol="50">Mid</button>
+        <button class="preset-btn active" data-vol="65">Ride</button>
+        <button class="preset-btn" data-vol="85">Loud</button>
+        <button class="preset-btn" data-vol="100">Max</button>
+      </div>
+
+      <div class="setting-label">Sound Character</div>
+      <div class="eq-row">
+        <button class="eq-btn active" data-eq="cloud">
+          Cloud
+          <span class="eq-sub">Warm · Airy</span>
+        </button>
+        <button class="eq-btn" data-eq="tron">
+          Tron
+          <span class="eq-sub">Bright · Edge</span>
+        </button>
+        <button class="eq-btn" data-eq="deep">
+          Deep
+          <span class="eq-sub">Bass · Rumble</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // ── DOM refs ─────────────────────────────────────────────────────────────
     const speedEl         = document.getElementById('speed');
+    const speedNextEl     = document.getElementById('speed-next');
     const unitEl          = document.getElementById('unit');
     const gpsDot          = document.getElementById('gps-dot');
     const gpsText         = document.getElementById('gps-text');
     const audioBtn        = document.getElementById('audio-btn');
     const debugLabel      = document.getElementById('debug-label');
     const interactionZone = document.getElementById('interaction-zone');
+    const tripMaxEl       = document.getElementById('trip-max');
+    const settingsBtn     = document.getElementById('settings-btn');
+    const settingsOverlay = document.getElementById('settings-overlay');
+    const volSlider       = document.getElementById('vol-slider');
 
+    // ── State ────────────────────────────────────────────────────────────────
     let audioCtx, gainIdle, filter, analyser;
     let choir = [];
     let vibratoLFO, vibratoGain;
@@ -205,8 +379,31 @@
     let isSimMode    = false;
     let currentSpeed = 0;
     let isKmh        = false;
-    let lastSpeed    = 0;
+    let lastDisplayed = -1;
+    let tripMax      = 0;
+    let volLevel     = 0.65;  // 0–1
+    let eqMode       = 'cloud';
+    let wakeLock     = null;
 
+    // ── Wake Lock — keep screen on while active ──────────────────────────────
+    async function requestWakeLock() {
+      if (!('wakeLock' in navigator)) return;
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      } catch (e) { /* silently ignore — not supported or denied */ }
+    }
+
+    async function releaseWakeLock() {
+      if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+    }
+
+    // Re-acquire wake lock if page becomes visible again (iOS Safari drops it on bg)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && audioEnabled) requestWakeLock();
+    });
+
+    // ── Audio init ───────────────────────────────────────────────────────────
     function initAudio() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       analyser = audioCtx.createAnalyser();
@@ -245,114 +442,109 @@
       filter.connect(audioCtx.destination);
     }
 
+    // ── EQ character presets ─────────────────────────────────────────────────
+    // Each preset tweaks base frequency ratios and filter shape.
+    // Applied live via updateSystem.
+    const EQ_PRESETS = {
+      cloud: { baseHz: 180, filterBase: 1050, filterScale: 62,  vibratoBase: 2.2, vibratoScale: 6.5, depthBase: 4, depthScale: 5.5 },
+      tron:  { baseHz: 220, filterBase: 1400, filterScale: 80,  vibratoBase: 3.0, vibratoScale: 8.0, depthBase: 3, depthScale: 4.0 },
+      deep:  { baseHz: 130, filterBase:  700, filterScale: 40,  vibratoBase: 1.6, vibratoScale: 4.0, depthBase: 6, depthScale: 7.0 },
+    };
+
+    // ── Audio button ─────────────────────────────────────────────────────────
     audioBtn.addEventListener('click', () => {
       if (!audioCtx) initAudio();
       audioEnabled = !audioEnabled;
       audioBtn.textContent = audioEnabled ? 'Active' : 'Standby';
       audioBtn.classList.toggle('active-toggle', audioEnabled);
-      if (audioEnabled) audioCtx.resume();
-      updateSystem(currentSpeed);
+      if (audioEnabled) {
+        audioCtx.resume();
+        requestWakeLock();
+        updateSystem(smoothedSpeed);
+      } else {
+        // Fade out over 400ms then suspend — no click, truly silent
+        const t = audioCtx.currentTime;
+        gainIdle.gain.cancelScheduledValues(t);
+        gainIdle.gain.setValueAtTime(gainIdle.gain.value, t);
+        gainIdle.gain.linearRampToValueAtTime(0.0001, t + 0.4);
+        setTimeout(() => { if (!audioEnabled) audioCtx.suspend(); }, 450);
+        releaseWakeLock();
+      }
     });
 
-    function updateSystem(mph) {
-      currentSpeed = Math.max(0, mph);
-      const displaySpeed = isKmh ? Math.round(currentSpeed * 1.60934) : Math.round(currentSpeed);
-      
-      // Small animation on number change
-      if (Math.abs(currentSpeed - lastSpeed) > 0.5) {
-        speedEl.style.transform = 'scale(0.92) translateY(-8px)';
-        setTimeout(() => {
-          speedEl.textContent = displaySpeed;
-          speedEl.style.transform = 'scale(1) translateY(0)';
-        }, 16);
-      } else {
-        speedEl.textContent = displaySpeed;
-      }
-      lastSpeed = currentSpeed;
-
-      // Smooth color gradient
-      let hue, saturation = 100, lightness = 68;
-      if (currentSpeed <= 20) {
-        hue = 140;
-      } else if (currentSpeed <= 30) {
-        hue = 140 - ((currentSpeed - 20) / 10) * 50;
-      } else if (currentSpeed <= 45) {
-        hue = 90 - ((currentSpeed - 30) / 15) * 45;
-      } else if (currentSpeed <= 60) {
-        hue = 45 - ((currentSpeed - 45) / 15) * 30;
-      } else if (currentSpeed <= 65) {
-        hue = 15;
-      } else {
-        hue = 15;
-        lightness = Math.max(48, 68 - (currentSpeed - 65) * 1.8);
-      }
-
-      const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-      const glow = currentSpeed > 55 ? 0.75 : 0.48;
-
-      speedEl.style.color = color;
-      speedEl.style.textShadow = `
-        0 0 58px hsla(${hue}, 100%, 75%, ${glow}),
-        0 0 115px hsla(${hue}, 100%, 68%, 0.38)
-      `;
-
-      if (audioEnabled && audioCtx) {
-        const speedFactor = currentSpeed / 45;  // Warbly/vibrato reaches full intensity much earlier
-
-        const shift = 1 + (currentSpeed / 75);   // Overall pitch rises faster
-        choir.forEach((osc, i) => {
-          const base = [1.0, 1.35, 1.72, 2.05, 2.45][i];
-          osc.frequency.linearRampToValueAtTime(180 * base * shift, audioCtx.currentTime + 0.1);
-        });
-
-        // Warbly sound (vibrato) reaches "80 mph level" at \~45 mph and gets even stronger after
-        vibratoLFO.frequency.linearRampToValueAtTime(2.2 + (speedFactor * 6.5), audioCtx.currentTime + 0.1);
-        vibratoGain.gain.linearRampToValueAtTime(4 + (speedFactor * 5.5), audioCtx.currentTime + 0.1);
-
-        gainIdle.gain.linearRampToValueAtTime(0.009 + (currentSpeed / 180), audioCtx.currentTime + 0.1);
-        filter.frequency.linearRampToValueAtTime(1050 + (currentSpeed * 62), audioCtx.currentTime + 0.1); // stronger "cloudy" sweep
+    // ── Volume control ───────────────────────────────────────────────────────
+    function applyVolume(v) {
+      volLevel = v;
+      if (audioEnabled && audioCtx && gainIdle) {
+        // volLevel scales the base gain — existing speed curves stay intact
+        const baseGain = 0.009 + (currentSpeed / 180);
+        gainIdle.gain.linearRampToValueAtTime(baseGain * volLevel * 2.5, audioCtx.currentTime + 0.15);
       }
     }
 
-    unitEl.addEventListener('click', () => {
-      isKmh = !isKmh;
-      unitEl.textContent = isKmh ? 'KM/H' : 'MPH';
-      updateSystem(currentSpeed);
+    volSlider.addEventListener('input', () => {
+      const v = volSlider.value / 100;
+      applyVolume(v);
+      // Update active preset highlight
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
     });
 
-    document.getElementById('secret-trigger').addEventListener('click', () => {
-      isSimMode = !isSimMode;
-      debugLabel.classList.toggle('visible', isSimMode);
-      if (!isSimMode) updateSystem(0);
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const v = parseInt(btn.dataset.vol) / 100;
+        volSlider.value = parseInt(btn.dataset.vol);
+        applyVolume(v);
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
     });
 
-    const handleTouch = (e) => {
-      if (!isSimMode) return;
-      const touch = e.touches ? e.touches[0] : e;
-      const rect  = interactionZone.getBoundingClientRect();
-      const x     = touch.clientX - rect.left;
-      const margin = rect.width * 0.12;
-      const usable = rect.width - margin * 2;
-      const relX   = Math.min(Math.max(x - margin, 0), usable);
-      updateSystem((relX / usable) * 85);
-    };
+    document.querySelectorAll('.eq-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        eqMode = btn.dataset.eq;
+        document.querySelectorAll('.eq-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (audioEnabled) updateSystem(currentSpeed);
+      });
+    });
 
-    interactionZone.addEventListener('touchstart', handleTouch);
-    interactionZone.addEventListener('touchmove', handleTouch);
-    interactionZone.addEventListener('mousedown', () => window.addEventListener('mousemove', handleTouch));
-    window.addEventListener('mouseup', () => window.removeEventListener('mousemove', handleTouch));
+    // ── Settings modal ───────────────────────────────────────────────────────
+    settingsBtn.addEventListener('click', () => {
+      const isOpen = settingsOverlay.classList.toggle('open');
+      settingsBtn.classList.toggle('open', isOpen);
+    });
 
-    function startGPS() {
-      navigator.geolocation.watchPosition((pos) => {
-        if (!isSimMode) {
-          gpsDot.classList.add('active');
-          gpsText.style.color = '#00ff88';
-          updateSystem(pos.coords.speed > 0 ? pos.coords.speed * 2.237 : 0);
-        }
-      }, null, { enableHighAccuracy: true, maximumAge: 0 });
-    }
+    settingsOverlay.addEventListener('click', (e) => {
+      if (e.target === settingsOverlay) {
+        settingsOverlay.classList.remove('open');
+        settingsBtn.classList.remove('open');
+      }
+    });
 
-    startGPS();
-  </script>
-</body>
-</html>
+    // ── Digit animation ──────────────────────────────────────────────────────
+    let animating = false;
+
+    function animateDigit(newVal, goingUp) {
+      if (animating) {
+        // Skip animation, just snap
+        speedEl.textContent = newVal;
+        speedNextEl.style.opacity = '0';
+        speedNextEl.classList.remove('anim-in-up','anim-in-down');
+        speedEl.classList.remove('anim-out-up','anim-out-down');
+        return;
+      }
+      animating = true;
+
+      const outClass = goingUp ? 'anim-out-down' : 'anim-out-up';
+      const inClass  = goingUp ? 'anim-in-up'    : 'anim-in-down';
+
+      // Stage next value
+      speedNextEl.textContent = newVal;
+      speedNextEl.style.color      = speedEl.style.color;
+      speedNextEl.style.textShadow = speedEl.style.textShadow;
+      speedNextEl.style.opacity    = '0';
+      speedNextEl.classList.remove('anim-in-up','anim-in-down');
+      speedEl.classList.remove('anim-out-up','anim-out-down');
+
+      // Trigger reflow
+      void speedEl.offsetWid
