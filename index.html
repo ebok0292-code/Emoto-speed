@@ -553,4 +553,107 @@
     const volVal    = document.getElementById('vol-val');
     volSlider.addEventListener('input', () => {
       volumeLevel = volSlider.value / 100;
-      volVal.textContent = `${volSlider.value}
+      volVal.textContent = `${volSlider.value}%`;
+      if (masterVol && audioCtx) {
+        masterVol.gain.setTargetAtTime(volumeLevel * 3.0, audioCtx.currentTime, 0.05);
+      }
+    });
+
+    // KMH toggle in settings — stays in sync with unit label tap
+    const unitToggle = document.getElementById('unit-toggle');
+    unitToggle.addEventListener('click', () => {
+      isKmh = !isKmh;
+      unitToggle.classList.toggle('on', isKmh);
+      unitEl.textContent = isKmh ? 'KM/H' : 'MPH';
+      updateSystem(currentSpeed);
+    });
+
+    // Unit label tap
+    unitEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isKmh = !isKmh;
+      unitEl.textContent = isKmh ? 'KM/H' : 'MPH';
+      unitToggle.classList.toggle('on', isKmh);
+      updateSystem(currentSpeed);
+    });
+
+    // ── GPS panel ─────────────────────────────────────────────────────────────
+    const gpsIndicator  = document.getElementById('gps-indicator');
+    const gpsPanel      = document.getElementById('gps-panel');
+    const gpsStatusVal  = document.getElementById('gps-status-val');
+    const gpsAccVal     = document.getElementById('gps-acc-val');
+    const gpsRawVal     = document.getElementById('gps-raw-val');
+    const gpsSmoothVal  = document.getElementById('gps-smooth-val');
+    const gpsSatVal     = document.getElementById('gps-sat-val');
+    let gpsPanelOpen    = false;
+
+    gpsIndicator.addEventListener('click', () => {
+      gpsPanelOpen = !gpsPanelOpen;
+      gpsPanel.classList.toggle('open', gpsPanelOpen);
+    });
+
+    // Close GPS panel if settings opens (avoid z overlap)
+    settingsTrigger.addEventListener('click', () => {
+      gpsPanelOpen = false;
+      gpsPanel.classList.remove('open');
+    });
+
+    function updateGPSPanel(pos, rawMph, smoothMph) {
+      const acc = pos.coords.accuracy;
+      gpsStatusVal.textContent  = 'Linked';
+      gpsStatusVal.className    = 'gps-row-value good';
+      gpsAccVal.textContent     = `±${Math.round(acc)}m`;
+      gpsAccVal.className       = `gps-row-value ${acc < 10 ? 'good' : acc < 25 ? '' : 'warn'}`;
+      gpsRawVal.textContent     = `${rawMph.toFixed(1)} mph`;
+      gpsSmoothVal.textContent  = `${smoothMph.toFixed(1)} mph`;
+      // altitudeAccuracy is a rough proxy for satellite quality — not always available
+      gpsSatVal.textContent     = pos.coords.altitudeAccuracy != null
+        ? `${Math.round(pos.coords.altitudeAccuracy)}m alt acc`
+        : 'N/A';
+    }
+
+    // ── Sim mode — tap the speed number ──────────────────────────────────────
+    speedEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isSimMode = !isSimMode;
+      debugLabel.classList.toggle('visible', isSimMode);
+      if (!isSimMode) updateSystem(0);
+    });
+
+    // ── Touch/mouse sim control ───────────────────────────────────────────────
+    const handleTouch = (e) => {
+      if (!isSimMode) return;
+      const touch  = e.touches ? e.touches[0] : e;
+      const rect   = interactionZone.getBoundingClientRect();
+      const x      = touch.clientX - rect.left;
+      const margin = rect.width * 0.12;
+      const usable = rect.width - margin * 2;
+      const relX   = Math.min(Math.max(x - margin, 0), usable);
+      updateSystem((relX / usable) * 85);
+    };
+
+    interactionZone.addEventListener('touchstart', handleTouch);
+    interactionZone.addEventListener('touchmove',  handleTouch);
+    interactionZone.addEventListener('mousedown',  () => window.addEventListener('mousemove', handleTouch));
+    window.addEventListener('mouseup', () => window.removeEventListener('mousemove', handleTouch));
+
+    // ── GPS ───────────────────────────────────────────────────────────────────
+    function startGPS() {
+      navigator.geolocation.watchPosition((pos) => {
+        if (isSimMode) return;
+        gpsDot.classList.add('active');
+        gpsText.style.color = '#00ff88';
+        const rawMph    = pos.coords.speed > 0 ? pos.coords.speed * 2.237 : 0;
+        const smoothMph = smoothGPS(rawMph);
+        updateGPSPanel(pos, rawMph, smoothMph);
+        updateSystem(smoothMph);
+      }, (err) => {
+        gpsStatusVal.textContent = 'Error';
+        gpsStatusVal.className   = 'gps-row-value warn';
+      }, { enableHighAccuracy: true, maximumAge: 0 });
+    }
+
+    startGPS();
+  </script>
+</body>
+</html>
